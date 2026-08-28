@@ -1,48 +1,48 @@
-"use client";
-import React, { useState } from 'react';
+import React from 'react';
+import Image from 'next/image';
 import {
-  Search, ChevronDown, Stethoscope, Video, Star,
-  ShieldCheck, Lock, Headset, CheckCircle2, ChevronRight,
-  Users, UserCheck, Calendar, Shield, Heart, Brain, Smile,
-  Baby, Eye, MoreHorizontal, Phone, Mail, MapPin,
-  Facebook, Twitter, Instagram, Linkedin, BotMessageSquare,
-  Clock
+  Users, UserCheck, Calendar, Shield,
+  Heart, Brain, Smile, Baby, Eye, MoreHorizontal,
+  Video, Star, ChevronRight, Clock, BotMessageSquare
 } from 'lucide-react';
-import Navbar from '@/Components/Navbar';
-import Footer from '@/Components/Footer';
+import Navbar from '@/Components/layout/Navbar';
+import Footer from '@/Components/layout/Footer';
+import HomeSearch from '@/Components/ui/HomeSearch';
+
+const doctors = [
+  { name: "Dr. Ahmed Raza", spec: "Cardiologist", rating: 4.9, reviews: 320, status: "Online", statusColor: "text-green-500 bg-green-50", img: "https://images.unsplash.com/photo-1612349317150-e410f624c4a5?auto=format&fit=crop&q=80&w=256&h=256" },
+  { name: "Dr. Sara Khan", spec: "Dermatologist", rating: 4.8, reviews: 210, status: "Online", statusColor: "text-green-500 bg-green-50", img: "https://images.unsplash.com/photo-1594824432258-f2134562547e?auto=format&fit=crop&q=80&w=256&h=256" },
+  { name: "Dr. Usman Ali", spec: "Neurologist", rating: 4.7, reviews: 180, status: "Busy", statusColor: "text-orange-500 bg-orange-50", img: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=256&h=256" },
+  { name: "Dr. Ayesha Malik", spec: "Pediatrician", rating: 4.9, reviews: 250, status: "Online", statusColor: "text-green-500 bg-green-50", img: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=256&h=256" },
+  { name: "Dr. Imran Javed", spec: "Orthopedic", rating: 4.6, reviews: 140, status: "Offline", statusColor: "text-red-500 bg-red-50", img: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=256&h=256" },
+];
+
+const stats = [
+  { icon: <Users className="w-8 h-8 text-blue-600" />, count: "12,500+", label: "Happy Patients", desc: "Trusted by thousands of patients", bg: "bg-blue-100" },
+  { icon: <UserCheck className="w-8 h-8 text-emerald-600" />, count: "1,200+", label: "Expert Doctors", desc: "Across 30+ specialties available", bg: "bg-emerald-100" },
+  { icon: <Calendar className="w-8 h-8 text-purple-600" />, count: "25,000+", label: "Appointments", desc: "Booked successfully every month", bg: "bg-purple-100" },
+  { icon: <Shield className="w-8 h-8 text-orange-600" />, count: "98%", label: "Satisfaction Rate", desc: "Patients are happy with our services", bg: "bg-orange-100" },
+];
+
+const departments = [
+  { icon: <Heart className="w-8 h-8 text-blue-600" />, name: "Cardiology", desc: "Heart & Vascular" },
+  { icon: <Brain className="w-8 h-8 text-blue-600" />, name: "Neurology", desc: "Brain & Nerves" },
+  { icon: <Smile className="w-8 h-8 text-blue-600" />, name: "Dermatology", desc: "Skin & Hair" },
+  { icon: <Baby className="w-8 h-8 text-blue-600" />, name: "Pediatrics", desc: "Child Care" },
+  { icon: <Eye className="w-8 h-8 text-blue-600" />, name: "Ophthalmology", desc: "Eye Care" },
+  { name: "Dentistry", desc: "Oral Care" },
+  { icon: <MoreHorizontal className="w-8 h-8 text-blue-600" />, name: "More", desc: "See all" },
+];
+
+export const metadata = {
+  title: "TeleMed AI — Find the Right Doctor in Minutes",
+  description: "Book appointments, consult online, get prescriptions and manage your health — all in one place.",
+};
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('Find Doctor');
-
-  // --- Dummy Data ---
-  const doctors = [
-    { name: "Dr. Ahmed Raza", spec: "Cardiologist", rating: 4.9, reviews: 320, status: "Online", statusColor: "text-green-500 bg-green-50", img: "https://images.unsplash.com/photo-1612349317150-e410f624c4a5?auto=format&fit=crop&q=80&w=256&h=256" },
-    { name: "Dr. Sara Khan", spec: "Dermatologist", rating: 4.8, reviews: 210, status: "Online", statusColor: "text-green-500 bg-green-50", img: "https://images.unsplash.com/photo-1594824432258-f2134562547e?auto=format&fit=crop&q=80&w=256&h=256" },
-    { name: "Dr. Usman Ali", spec: "Neurologist", rating: 4.7, reviews: 180, status: "Busy", statusColor: "text-orange-500 bg-orange-50", img: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=256&h=256" },
-    { name: "Dr. Ayesha Malik", spec: "Pediatrician", rating: 4.9, reviews: 250, status: "Online", statusColor: "text-green-500 bg-green-50", img: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=256&h=256" },
-    { name: "Dr. Imran Javed", spec: "Orthopedic", rating: 4.6, reviews: 140, status: "Offline", statusColor: "text-red-500 bg-red-50", img: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&q=80&w=256&h=256" },
-  ];
-
-  const stats = [
-    { icon: <Users className="w-8 h-8 text-blue-600" />, count: "12,500+", label: "Happy Patients", desc: "Trusted by thousands of patients", bg: "bg-blue-100" },
-    { icon: <UserCheck className="w-8 h-8 text-emerald-600" />, count: "1,200+", label: "Expert Doctors", desc: "Across 30+ specialties available", bg: "bg-emerald-100" },
-    { icon: <Calendar className="w-8 h-8 text-purple-600" />, count: "25,000+", label: "Appointments", desc: "Booked successfully every month", bg: "bg-purple-100" },
-    { icon: <Shield className="w-8 h-8 text-orange-600" />, count: "98%", label: "Satisfaction Rate", desc: "Patients are happy with our services", bg: "bg-orange-100" },
-  ];
-
-  const departments = [
-    { icon: <Heart className="w-8 h-8 text-blue-600" />, name: "Cardiology", desc: "Heart & Vascular" },
-    { icon: <Brain className="w-8 h-8 text-blue-600" />, name: "Neurology", desc: "Brain & Nerves" },
-    { icon: <Smile className="w-8 h-8 text-blue-600" />, name: "Dermatology", desc: "Skin & Hair" },
-    { icon: <Baby className="w-8 h-8 text-blue-600" />, name: "Pediatrics", desc: "Child Care" },
-    { icon: <Eye className="w-8 h-8 text-blue-600" />, name: "Ophthalmology", desc: "Eye Care" },
-    { icon: <img src="https://placehold.co/32x32/0284c7/ffffff?text=Tooth" className="w-8 h-8 rounded-md" alt="Dentistry" />, name: "Dentistry", desc: "Oral Care" },
-    { icon: <MoreHorizontal className="w-8 h-8 text-blue-600" />, name: "More", desc: "See all" },
-  ];
-
   return (
     <div className="min-h-screen bg-background font-sans text-foreground relative transition-colors duration-300">
-      {/* HEADER */}
+      <Navbar />
 
       {/* HERO SECTION */}
       <section className="relative max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-20 flex flex-col md:flex-row items-center gap-12 overflow-hidden">
@@ -56,59 +56,27 @@ export default function Home() {
             Book appointments, consult online, get prescriptions and manage your health — all in one place.
           </p>
 
-          {/* Search Box */}
-          <div className="bg-card p-3 rounded-2xl shadow-xl max-w-xl border border-border transition-colors">
-            <div className="flex items-center gap-2 mb-3 border-b border-border pb-2">
-              {['Find Doctor', 'By Symptoms', 'Clinics & Labs'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === tab
-                      ? 'text-foreground bg-accent'
-                      : 'text-muted-foreground hover:bg-muted'
-                    }`}
-                >
-                  {tab === 'Find Doctor' && <Search className="w-4 h-4" />}
-                  {tab === 'By Symptoms' && <Stethoscope className="w-4 h-4" />}
-                  {tab === 'Clinics & Labs' && <ShieldCheck className="w-4 h-4" />}
-                  {tab}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 flex items-center gap-3 bg-muted px-4 py-3 rounded-xl transition-colors">
-                <Search className="w-5 h-5 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search doctor, speciality, or symptoms..."
-                  className="bg-transparent border-none outline-none w-full text-sm placeholder:text-muted-foreground text-foreground"
-                />
-              </div>
-              <button className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors">
-                Search
-              </button>
-            </div>
-          </div>
+          <HomeSearch />
 
           {/* Trust Badges */}
           <div className="flex items-center gap-6 mt-10 text-sm font-medium text-muted-foreground">
-            <div className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-success" /> Verified Doctors</div>
-            <div className="flex items-center gap-2"><Lock className="w-5 h-5 text-primary" /> Secure & Private</div>
-            <div className="flex items-center gap-2"><Headset className="w-5 h-5 text-primary" /> 24/7 Support</div>
+            <div className="flex items-center gap-2"><Star className="w-5 h-5 text-success" /> Verified Doctors</div>
+            <div className="flex items-center gap-2"><Shield className="w-5 h-5 text-primary" /> Secure & Private</div>
+            <div className="flex items-center gap-2"><Clock className="w-5 h-5 text-primary" /> 24/7 Support</div>
           </div>
         </div>
 
         {/* Right Content / Image Area */}
         <div className="flex-1 relative w-full flex justify-center items-center">
-          {/* Decorative Primary Blob */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary rounded-full blur-[100px] opacity-20 -z-10"></div>
           <div className="absolute top-10 right-0 w-[450px] h-[550px] bg-primary/80 rounded-[100px] rotate-12 -z-10 overflow-hidden"></div>
 
           <div className="relative z-10 w-full max-w-[450px]">
-            {/* Main Hero Image */}
-            <img
+            <Image
               src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=800&h=1000"
               alt="Doctor"
+              width={800}
+              height={1000}
               className="w-full h-auto object-cover rounded-3xl z-10 relative drop-shadow-2xl"
               style={{ maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)' }}
             />
@@ -135,7 +103,7 @@ export default function Home() {
               </div>
               <div className="flex -space-x-3">
                 {[1, 2, 3, 4].map(i => (
-                  <img key={i} src={`https://i.pravatar.cc/100?img=${i + 10}`} className="w-8 h-8 rounded-full border-2 border-card" alt="Avatar" />
+                  <Image key={i} src={`https://i.pravatar.cc/100?img=${i + 10}`} width={32} height={32} className="w-8 h-8 rounded-full border-2 border-card" alt="Avatar" />
                 ))}
               </div>
             </div>
@@ -161,9 +129,9 @@ export default function Home() {
           {doctors.map((doc, idx) => (
             <div key={idx} className="min-w-[280px] bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-xl transition-all snap-start">
               <div className="relative mb-4">
-                <img src={doc.img} alt={doc.name} className="w-full h-48 object-cover rounded-xl bg-muted" />
+                <Image src={doc.img} alt={doc.name} width={256} height={192} className="w-full h-48 object-cover rounded-xl bg-muted" />
                 <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1.5 ${doc.statusColor}`}>
-                  <CheckCircle2 className="w-3 h-3" /> {doc.status}
+                  <Star className="w-3 h-3" /> {doc.status}
                 </div>
               </div>
               <h3 className="font-bold text-lg text-foreground">{doc.name}</h3>
@@ -184,7 +152,6 @@ export default function Home() {
               )}
             </div>
           ))}
-          {/* Scroll Navigation Button (Static visual representation) */}
           <div className="hidden md:flex items-center justify-center min-w-[60px]">
             <button className="w-12 h-12 rounded-full bg-card shadow-lg flex items-center justify-center text-primary hover:bg-accent transition-colors border border-border">
               <ChevronRight className="w-6 h-6" />
@@ -236,9 +203,7 @@ export default function Home() {
       {/* CTA BANNER */}
       <section className="max-w-7xl mx-auto px-4 md:px-8 py-12 pb-24">
         <div className="bg-accent rounded-[32px] overflow-hidden flex flex-col md:flex-row items-center relative border border-primary/20 transition-colors">
-          {/* Left Image Side */}
           <div className="w-full md:w-1/3 relative h-64 md:h-auto overflow-hidden bg-primary/10 flex items-end justify-center pt-8">
-            {/* Dummy Phone Mockup Shape */}
             <div className="w-64 h-80 bg-card rounded-t-3xl border-8 border-foreground border-b-0 shadow-2xl relative flex flex-col">
               <div className="p-4 border-b border-border">
                 <h5 className="font-bold text-sm text-foreground">Book Appointment</h5>
@@ -255,13 +220,11 @@ export default function Home() {
                 </div>
               </div>
             </div>
-            {/* Floating Clock Icon */}
             <div className="absolute top-1/2 right-4 md:-right-8 w-16 h-16 bg-primary rounded-full flex items-center justify-center shadow-xl border-4 border-card text-primary-foreground">
               <Clock className="w-8 h-8" />
             </div>
           </div>
 
-          {/* Right Content */}
           <div className="flex-1 p-8 md:p-16 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-8">
             <div>
               <h2 className="text-3xl font-bold text-foreground mb-3">Book Appointment in Just a Few Clicks</h2>
@@ -289,16 +252,6 @@ export default function Home() {
           AI Assistant
         </div>
       </button>
-
-      <style jsx global>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 }

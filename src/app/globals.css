@@ -83,3 +83,12 @@ body {
   box-shadow: 0 0 0 2px rgba(71, 133, 255, 0.3);
   border-color: var(--color-primary);
 }
+
+/* Hide horizontal scrollbar on carousels */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

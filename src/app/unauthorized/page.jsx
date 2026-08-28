@@ -1,24 +1,14 @@
 import Link from 'next/link'
 import { ShieldAlert, ArrowLeft, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { cookies } from 'next/headers'
+import { getUser, getUserRole } from '@/lib/supabase/profile'
 
 export default async function UnauthorizedPage() {
     const supabase = await createClient()
 
     // Fetch logged-in user & role to route them back intelligently
-    const { data: { user } } = await supabase.auth.getUser()
-
-    let userRole = 'patient'
-    if (user) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        userRole = profile?.role || 'patient'
-    }
+    const user = await getUser(supabase)
+    const userRole = await getUserRole(supabase, user?.id)
 
     const dashboardPath = `/${userRole}/dashboard`
 
@@ -54,15 +44,13 @@ export default async function UnauthorizedPage() {
                         Return to Dashboard
                     </Link>
 
-                    <form action="/auth/signout" method="post" className="w-full sm:w-auto">
-                        <Link
-                            href="/login"
-                            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm transition-colors"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            Switch Account
-                        </Link>
-                    </form>
+                    <Link
+                        href="/login"
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Switch Account
+                    </Link>
                 </div>
 
                 {/* Footer Note */}

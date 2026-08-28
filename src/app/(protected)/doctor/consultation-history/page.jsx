@@ -9,10 +9,6 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
-  LayoutDashboard,
-  History,
-  Settings,
-  LogOut,
   FileText
 } from 'lucide-react';
 
@@ -53,18 +49,7 @@ export default function ConsultationHistory() {
   ];
 
   return (
-    <div 
-      className="h-screen flex font-sans overflow-hidden antialiased"
-      style={{
-        backgroundColor: 'var(--color-background)',
-        color: 'var(--color-foreground)',
-        fontFamily: 'var(--font-sans)',
-      }}
-    >
-      
-      {/* Sidebar Navigation */}
-
-
+    <>
       {/* Main Content Area */}
       <main 
         className="flex-1 overflow-y-auto p-4 md:p-8"
@@ -160,7 +145,7 @@ export default function ConsultationHistory() {
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-3">
                             {item.avatar ? (
-                              <img
+                              <Image
                                 alt="Patient Avatar"
                                 width={40}
                                 height={40}
@@ -283,6 +268,6 @@ export default function ConsultationHistory() {
 
         </div>
       </main>
-    </div>
+    </>
   );
 }

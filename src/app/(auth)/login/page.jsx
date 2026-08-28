@@ -1,5 +1,5 @@
 import React from "react"
-import LoginForm from "@/components/auth/LoginForm"
+import LoginForm from "@/Components/forms/LoginForm"
 import { Stethoscope, ShieldCheck } from "lucide-react"
 
 export const metadata = {
@@ -30,7 +30,7 @@ export default function LoginPage() {
         {/* Secure Badge */}
         <div className="mt-8 flex items-center justify-center gap-2 text-outline text-xs">
           <ShieldCheck className="w-4 h-4" />
-          <span>Secure, HIPAA compliant portal</span>
+          <span>Secure, encrypted portal</span>
         </div>
       </main>
     </div>

@@ -1,10 +1,27 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
+import { getUser, getUserRole } from '@/lib/supabase/profile'
+
+// Boundary-safe prefix check: matches `/prefix` exactly or `/prefix/...`,
+// but not `/prefixsomething` (avoids accidental path collisions).
+function pathStartsWith(pathname, prefix) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
 
 export async function updateSession(request) {
     let supabaseResponse = NextResponse.next({
         request,
     })
+
+    const pathname = request.nextUrl.pathname
+
+    // The auth callback performs the single, explicit PKCE code exchange and
+    // then strips the code from the URL. Bypass the proxy here so the
+    // auto-exchange (triggered by getUser below) never consumes the single-use
+    // code before the callback route handler does.
+    if (pathStartsWith(pathname, '/auth/callback')) {
+        return supabaseResponse
+    }
 
     // 1. Initialize Supabase Server Client with Cookie Handlers
     const supabase = createServerClient(
@@ -29,14 +46,14 @@ export async function updateSession(request) {
     )
 
     // 2. Fetch authenticated user
-    const { data: { user } } = await supabase.auth.getUser()
-    const pathname = request.nextUrl.pathname
+    const user = await getUser(supabase)
 
     // Route classifications
-    const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup')
-    const isProtectedRoute = pathname.startsWith('/patient') ||
-                             pathname.startsWith('/doctor') ||
-                             pathname.startsWith('/admin')
+    const isAuthRoute = pathStartsWith(pathname, '/login') || pathStartsWith(pathname, '/signup')
+    const isProtectedRoute = pathStartsWith(pathname, '/patient') ||
+                             pathStartsWith(pathname, '/doctor') ||
+                             pathStartsWith(pathname, '/admin') ||
+                             pathStartsWith(pathname, '/features')
 
     // 3. CASE 1: Unauthenticated user trying to access protected routes
     if (!user && isProtectedRoute) {
@@ -47,13 +64,7 @@ export async function updateSession(request) {
 
     // 4. Fetch User Role if logged in and accessing protected OR auth routes
     if (user && (isProtectedRoute || isAuthRoute)) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single()
-
-        const userRole = profile?.role || 'patient'
+        const userRole = await getUserRole(supabase, user.id)
         const defaultDashboard = `/${userRole}/dashboard`
 
         // 5. CASE 2: Logged-in user tries to visit /login or /signup -> Redirect to their dashboard
@@ -62,15 +73,20 @@ export async function updateSession(request) {
         }
 
         // 6. CASE 3: Role-Based Access Control (RBAC) Enforcement
-        if (pathname.startsWith('/admin') && userRole !== 'admin') {
+        if (pathStartsWith(pathname, '/admin') && userRole !== 'admin') {
             return NextResponse.redirect(new URL('/unauthorized', request.url))
         }
 
-        if (pathname.startsWith('/doctor') && userRole !== 'doctor' && userRole !== 'admin') {
+        if (pathStartsWith(pathname, '/doctor') && userRole !== 'doctor' && userRole !== 'admin') {
             return NextResponse.redirect(new URL('/unauthorized', request.url))
         }
 
-        if (pathname.startsWith('/patient') && userRole !== 'patient' && userRole !== 'admin') {
+        if (pathStartsWith(pathname, '/patient') && userRole !== 'patient' && userRole !== 'admin') {
+            return NextResponse.redirect(new URL('/unauthorized', request.url))
+        }
+
+        // Onboarding lives under /features and is a patient flow.
+        if (pathStartsWith(pathname, '/features') && userRole !== 'patient' && userRole !== 'admin') {
             return NextResponse.redirect(new URL('/unauthorized', request.url))
         }
     }

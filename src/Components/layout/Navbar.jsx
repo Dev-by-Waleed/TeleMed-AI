@@ -11,16 +11,6 @@ const NAV_CONFIG = {
     { label: 'Dashboard', path: '/patient/dashboard' },
     { label: 'Medical Report', path: '/patient/reports' },
     { label: 'Consultation', path: '/patient/consultation' }
-  ],
-  doctor: [
-    { label: 'Doctor Dashboard', path: '/doctor/dashboard' },
-    { label: 'Appointments', path: '/doctor/appointments' },
-    { label: 'Patient Records', path: '/doctor/records' }
-  ],
-  admin: [
-    { label: 'Admin Panel', path: '/admin/dashboard' },
-    { label: 'Manage Users', path: '/admin/users' },
-    { label: 'Analytics', path: '/admin/analytics' }
   ]
 }
 

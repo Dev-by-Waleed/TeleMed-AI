@@ -1,11 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import Image from 'next/image';
-import Sidebar from '@/Components/Sidebar';
 import {
-  Activity,
-  Bell,
   Heart,
   HeartPulse,
   Thermometer,
@@ -39,56 +35,7 @@ export default function DoctorConsultation() {
   };
 
   return (
-    <div className="h-screen bg-[var(--color-surface)] text-[var(--color-on-surface)] font-sans overflow-hidden flex flex-col antialiased">
-      {/* Top Professional Navigation Bar */}
-      {/* <nav className="bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] flex justify-between items-center w-full px-6 md:px-10 h-16 shrink-0 z-50 fixed top-0 left-0">
-        <div className="flex items-center gap-2">
-          <Activity className="text-[var(--color-primary)] w-7 h-7" />
-          <h1 className="text-xl font-bold text-[var(--color-primary)] tracking-tight">
-            TeleMed Professional
-          </h1>
-        </div>
-
-        <div className="hidden md:flex space-x-8 h-full items-center">
-          <a href="#" className="text-[var(--color-on-secondary-container)] text-sm font-semibold hover:text-[var(--color-primary)] transition-colors">
-            Dashboard
-          </a>
-          <a href="#" className="text-[var(--color-on-secondary-container)] text-sm font-semibold hover:text-[var(--color-primary)] transition-colors">
-            My Patients
-          </a>
-          <a href="#" className="text-[var(--color-on-secondary-container)] text-sm font-semibold hover:text-[var(--color-primary)] transition-colors">
-            Schedule
-          </a>
-          <a href="#" className="text-[var(--color-primary)] border-b-2 border-[var(--color-primary)] pb-1 text-sm font-semibold hover:text-[var(--color-primary)] transition-colors h-full flex items-center mt-[2px]">
-            Active Consultation
-          </a>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          <button aria-label="Notifications" className="text-[var(--color-on-secondary-container)] hover:text-[var(--color-primary)] transition-colors p-2 rounded-full hover:bg-[var(--color-surface-container-low)]">
-            <Bell className="w-5 h-5" />
-          </button>
-          
-          <div className="flex items-center gap-3 pl-2 border-l border-[var(--color-outline-variant)]">
-            <div className="h-9 w-9 rounded-full overflow-hidden border border-[var(--color-outline-variant)] cursor-pointer shrink-0">
-              <img 
-                alt="Doctor Profile Avatar" 
-                width={36} 
-                height={36} 
-                className="w-full h-full object-cover" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUD_fGYbxGYwE6L06ioYUppaXmBmOmRVevMlfP-EshjpR5qcjvi8iAauXJFXHFGA7jEGqq1aM1_sV2WmaRjSE5_yUrm4jgFc3WoZCMQHhrw13TvwGWdrHcp5gANwSQ28mxCKYJksWNgcHVH6FPngKl8ciB1KJtUIekUY5OhUMiJs15hPSwAR-wnhyZsfea_PH_r9SzqOePjlB6-XMDJE_p41AoK6ROr_2RxlxPtdzvDl7wgsxgWprsPOXRjikth5ft12GA3s0r5A"
-              />
-            </div>
-            <div className="hidden lg:block text-left">
-              <p className="text-xs font-bold text-[var(--color-on-surface)] leading-none">Dr. Smith</p>
-              <p className="text-[10px] text-[var(--color-on-surface-variant)] mt-0.5">Cardiologist</p>
-            </div>
-          </div>
-        </div>
-      </nav> */}
-      <div className="flex flex-col lg:flex-row flex-1 w-full max-w-[1600px] mx-auto">
-
-        <Sidebar />
+    <div className="flex flex-col lg:flex-row flex-1 w-full max-w-[1600px] mx-auto">
         {/* Main Workspace Canvas */}
         <main className="flex-1 flex flex-col p-4 md:p-6 gap-4 bg-[var(--color-surface-bright)] overflow-y-auto">
 
@@ -191,7 +138,7 @@ export default function DoctorConsultation() {
                   </div>
                   <div className="bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface)] p-3 rounded-lg rounded-tr-none border border-[var(--color-outline-variant)]/40 max-w-[80%] shadow-sm">
                     <p className="text-xs leading-relaxed">
-                      Hi Dr. Smith. Honestly, I've been feeling a bit nauseous in the mornings, and my fasting numbers are still hovering around 130 mg/dL.
+                      Hi Dr. Smith. Honestly, I&apos;ve been feeling a bit nauseous in the mornings, and my fasting numbers are still hovering around 130 mg/dL.
                     </p>
                     <span className="text-[10px] text-[var(--color-on-surface-variant)] mt-1.5 block text-right">10:03 AM</span>
                   </div>
@@ -204,7 +151,7 @@ export default function DoctorConsultation() {
                   </div>
                   <div className="bg-[var(--color-surface-card)] text-[var(--color-on-surface)] p-3 rounded-lg rounded-tl-none border border-[var(--color-outline-variant)]/60 max-w-[80%] shadow-sm">
                     <p className="text-xs leading-relaxed">
-                      I see. Nausea can be a common side effect early on. Let's review your food log and see if taking it with a larger meal helps.
+                      I see. Nausea can be a common side effect early on. Let&apos;s review your food log and see if taking it with a larger meal helps.
                       <span className="animate-pulse inline-block w-1.5 h-3.5 bg-[var(--color-primary)] align-middle ml-1"></span>
                     </p>
                     <span className="text-[10px] text-[var(--color-on-surface-variant)] mt-1.5 block">10:05 AM</span>
@@ -251,13 +198,6 @@ export default function DoctorConsultation() {
               {/* Patient Header Card */}
               <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-3.5 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
                 <div className="h-12 w-12 rounded-full overflow-hidden border border-[var(--color-outline-variant)] shrink-0">
-                  {/* <Image 
-                  alt="Patient Avatar" 
-                  width={48} 
-                  height={48} 
-                  className="w-full h-full object-cover" 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjLmpeHble1MMnFeCqPl2OK9UYmcSObh124HIXBOY4fRU80RnsfoK7kQ7DtegDK8UGSgAOc8sPrNxBrybNSSmtLg-uY0e0aofCkNdJuXH975pAkhzIe1EnbBGpL2Ck8SL9iaDXHXSiAXd0rc_upcBUIaMHjXrJkb-mr5ZD8Fcv_RV5udkEOZEPpjVceglr1uRdfGUafGAzGw2r_m6mcsBhkh-8fYS-ABebDlCUVIuYrX0AYySa9I5-LhCXj0mrj_aIji4NRJHa7g"
-                /> */}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-sm font-bold text-[var(--color-on-surface)] leading-tight">Eleanor Vance</h3>
@@ -390,7 +330,6 @@ export default function DoctorConsultation() {
 
           </div>
         </main>
-      </div>
     </div>
   );
 }

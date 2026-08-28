@@ -20,13 +20,6 @@ export default function Footer() {
                     <p className="text-sm text-blue-200/80 mb-6 leading-relaxed">
                         We are committed to providing the best healthcare experience with trusted doctors and advanced technology.
                     </p>
-                    <div className="flex gap-3">
-                        {/* {[Facebook, Twitter, Instagram, Linkedin].map((Icon, i) => (
-                <button key={i} className="w-9 h-9 rounded-full bg-blue-900/50 flex items-center justify-center hover:bg-blue-500 transition-colors">
-                  <Icon className="w-4 h-4 text-white" />
-                </button>
-              ))} */}
-                    </div>
                 </div>
 
                 {/* Quick Links */}

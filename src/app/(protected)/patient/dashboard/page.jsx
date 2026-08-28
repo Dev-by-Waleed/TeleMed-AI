@@ -1,9 +1,7 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import {
-  Bell,
   Filter,
   Star,
   Clock,
@@ -15,7 +13,7 @@ import {
 } from 'lucide-react';
 
 const availableDoctors = [
-  {
+  { 
     id: '1',
     name: 'Dr. Emily Chen',
     specialty: 'Cardiology',
@@ -81,14 +79,8 @@ export default function PatientDashboard() {
                 key={doc.id}
                 className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6 flex flex-col sm:flex-row gap-6 items-start sm:items-center hover:shadow-md transition-shadow"
               >
-                <div className="w-20 h-20 rounded-full overflow-hidden shrink-0 relative">
-                  {/* <Image
-                    src={doc.avatar}
-                    alt={doc.name}
-                    fill
-                    className="object-cover"
-                    sizes="80px"
-                  /> */}
+                <div className="w-20 h-20 rounded-full overflow-hidden shrink-0 relative bg-[var(--color-surface-container-high)] flex items-center justify-center text-lg font-bold text-[var(--color-primary)]">
+                  {doc.name.charAt(4)}
                 </div>
                 <div className="flex-grow">
                   <h3 className="text-lg font-semibold text-[var(--color-foreground)]">

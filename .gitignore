@@ -20,18 +20,9 @@
 # production
 /build
 
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -40,8 +31,35 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# supabase local dev
+supabase/.temp/
+supabase/.env.local
+
+# misc
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
 # secrets
 project supabase database pass.txt
 
+# dev tools (personal config, not project)
+opencode.json
+
 # docs
 PROJECT_REVIEW.md
+AUTH_IMPROVEMENTS.md

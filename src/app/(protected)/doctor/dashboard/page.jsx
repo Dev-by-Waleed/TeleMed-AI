@@ -2,16 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import Sidebar from '@/Components/Sidebar';
+import createClient from '@/lib/supabase/client';
 import {
-  LayoutDashboard,
-  Users,
-  Calendar,
-  FileText,
-  History,
-  Video,
-  Settings,
-  LogOut,
   Menu,
   Activity,
   Smile,
@@ -23,27 +15,26 @@ import {
 } from 'lucide-react';
 
 export default function DoctorDashboard() {
-  const [currentDate, setCurrentDate] = useState('');
+  const [mounted, setMounted] = useState(false)
+  const [currentDate, setCurrentDate] = useState('')
+  const [userName, setUserName] = useState('')
 
   useEffect(() => {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    setCurrentDate(new Date().toLocaleDateString('en-US', options));
-  }, []);
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data?.user
+      setUserName(user?.user_metadata?.full_name || user?.email || '')
+      setCurrentDate(new Date().toLocaleDateString('en-US', options))
+      setMounted(true)
+    })
+  }, [])
 
   return (
-    <div
-      className="h-screen flex font-sans overflow-hidden antialiased"
-      style={{
-        backgroundColor: 'var(--color-background)',
-        color: 'var(--color-on-surface)',
-        fontFamily: 'var(--font-sans)',
-      }}
-    >
-      {/* SideNavBar */}
-      <Sidebar />
-
+    <>
       {/* Main Content Canvas */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden" style={{ backgroundColor: 'var(--color-background)' }}>
+      <main className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--color-background)' }}>
         
         {/* Mobile Top Nav Fallback */}
         <header
@@ -67,7 +58,7 @@ export default function DoctorDashboard() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-3">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-on-background)' }}>
-                Good Morning, Dr. Smith
+                Good Morning, {userName || 'Doctor'}
               </h1>
               <p className="text-sm mt-1" style={{ color: 'var(--color-on-surface-variant)' }}>
                 Here is your clinical overview for today.
@@ -83,7 +74,7 @@ export default function DoctorDashboard() {
               }}
             >
               <CalendarDays className="w-4 h-4" />
-              <span>{currentDate || 'October 24, 2023'}</span>
+              <span>{mounted ? currentDate : ''}</span>
             </div>
           </div>
 
@@ -169,7 +160,7 @@ export default function DoctorDashboard() {
                 style={{ borderColor: 'var(--color-outline-variant)' }}
               >
                 <h2 className="text-lg font-bold" style={{ color: 'var(--color-on-surface)' }}>
-                  Today's Appointments
+Today&apos;s Appointments
                 </h2>
                 <button className="text-xs font-semibold hover:underline" style={{ color: 'var(--color-primary-container)' }}>
                   View All
@@ -217,7 +208,7 @@ export default function DoctorDashboard() {
                   {/* Appointment Item 2 */}
                   <li className="p-3 rounded-lg transition-colors flex items-center justify-between hover:bg-[var(--color-surface-container-low)]">
                     <div className="flex items-center gap-3">
-                      <img
+                      <Image
                         alt="Michael Chang"
                         width={40}
                         height={40}
@@ -382,6 +373,6 @@ export default function DoctorDashboard() {
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }

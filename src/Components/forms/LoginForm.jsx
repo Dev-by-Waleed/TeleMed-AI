@@ -1,16 +1,25 @@
 "use client"
 
-import React, { useActionState } from "react"
+import React, { useActionState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { loginAction } from "@/actions/auth"
 import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react"
+import AuthField from "@/Components/ui/AuthField"
 
 export default function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, null)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (state?.destination) {
+      router.push(state.destination)
+    }
+  }, [state, router])
 
   return (
     <div className="bg-surface-card border border-outline-variant rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
-      
+
       {/* Error Banner */}
       {state?.error && (
         <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 text-sm font-medium text-center">
@@ -19,59 +28,35 @@ export default function LoginForm() {
       )}
 
       <form action={formAction} className="space-y-6">
-        {/* Email Field */}
-        <div className="space-y-2">
-          <label
-            htmlFor="email"
-            className="block text-sm font-semibold tracking-wide text-on-surface"
-          >
-            Email Address
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-outline">
-              <Mail className="w-5 h-5" />
-            </div>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              placeholder="patient@example.com"
-              className="block w-full pl-11 pr-4 py-2 border border-outline-variant rounded-lg bg-surface-card text-on-surface text-base input-glow transition-all duration-200 outline-none"
-            />
-          </div>
-        </div>
+        <AuthField
+          id="email"
+          name="email"
+          type="email"
+          label="Email Address"
+          icon={<Mail className="w-5 h-5" />}
+          required
+          autoComplete="email"
+          placeholder="patient@example.com"
+        />
 
-        {/* Password Field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label
-              htmlFor="password"
-              className="block text-sm font-semibold tracking-wide text-on-surface"
-            >
-              Password
-            </label>
+        <AuthField
+          id="password"
+          name="password"
+          type="password"
+          label="Password"
+          icon={<Lock className="w-5 h-5" />}
+          required
+          autoComplete="current-password"
+          placeholder="••••••••"
+          labelExtra={
             <Link
               href="/forgot-password"
               className="text-xs text-primary hover:text-primary-dark transition-colors"
             >
               Forgot Password?
             </Link>
-          </div>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-outline">
-              <Lock className="w-5 h-5" />
-            </div>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              placeholder="••••••••"
-              className="block w-full pl-11 pr-4 py-2 border border-outline-variant rounded-lg bg-surface-card text-on-surface text-base input-glow transition-all duration-200 outline-none"
-            />
-          </div>
-        </div>
+          }
+        />
 
         {/* Submit Button */}
         <div className="pt-2">

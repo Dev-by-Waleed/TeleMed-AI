@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import Image from 'next/image';
 import {
-  Activity,
-  Bell,
   Heart,
   HeartPulse,
   Thermometer,
@@ -32,43 +29,6 @@ export default function PatientConsultation() {
 
   return (
     <div className="h-screen bg-[var(--color-surface)] text-[var(--color-on-surface)] font-sans overflow-hidden flex flex-col antialiased">
-      {/* Top Navigation Bar */}
-      {/* <nav className="bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] flex justify-between items-center w-full px-6 md:px-10 h-16 shrink-0 z-50 fixed top-0 left-0">
-        <div className="flex items-center gap-2">
-          <Activity className="text-[var(--color-primary)] w-7 h-7" />
-          <h1 className="text-xl font-bold text-[var(--color-primary)] tracking-tight">
-            TeleMed Patient Portal
-          </h1>
-        </div>
-
-        <div className="hidden md:flex space-x-8 h-full items-center">
-          <a href="#" className="text-[var(--color-on-secondary-container)] text-sm font-semibold hover:text-[var(--color-primary)] transition-colors duration-200">
-            Dashboard
-          </a>
-          <a href="#" className="text-[var(--color-on-secondary-container)] text-sm font-semibold hover:text-[var(--color-primary)] transition-colors duration-200">
-            Medical Records
-          </a>
-          <a href="#" className="text-[var(--color-primary)] border-b-2 border-[var(--color-primary)] pb-1 text-sm font-semibold hover:text-[var(--color-primary)] transition-colors duration-200 h-full flex items-center mt-[2px]">
-            Consultations
-          </a>
-        </div>
-
-        <div className="flex items-center space-x-6">
-          <button aria-label="Notifications" className="text-[var(--color-on-secondary-container)] hover:text-[var(--color-primary)] transition-colors">
-            <Bell className="w-5 h-5" />
-          </button>
-          <div className="h-8 w-8 rounded-full overflow-hidden border border-[var(--color-outline-variant)] cursor-pointer">
-            <Image 
-              alt="Patient Profile Avatar" 
-              width={32} 
-              height={32} 
-              className="w-full h-full object-cover" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZAd3eZ0n784pJT1Y-HJ-LdJiPwOGScm4PrbU91t4L1t253lyDRCTaeJjZGjD7MPgte0zlihyESDmDAp4E4VhPjiJQAuU_Vz2MsK1mN_zb6dVp8lVnwa2xhTO9rzHgjXfseiYx8I8yQwEyjI6Jghn8KmcS1MA78_tGaNBaYF9SMp2CXrePgC-4r4aIaLxKJhATYaatrX2uQRPg0jsCAUZB8l3muDFuQzKFWjFre4_bnq-9ea6SbK-LikZGuin4VSJQDRitO-iwsg"
-            />
-          </div>
-        </div>
-      </nav> */}
-
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col lg:flex-row h-[calc(100vh-64px)] w-full max-w-[1440px] mx-auto bg-[var(--color-surface-bright)]">
         
@@ -78,13 +38,7 @@ export default function PatientConsultation() {
           {/* Doctor Info Card */}
           <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-4 shadow-sm flex items-start gap-4">
              <div className="w-14 h-14 rounded-full overflow-hidden border border-[var(--color-outline-variant)] shrink-0">
-               {/* <Image 
-                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMVcsyJUZ-W6FZSVvGxtWpJwp2cX2MhP5oejopfssYdqx5C8RSbJPsK6nPOItXGmEScy79kMjhCpGwEvozOxAx_SVFyu7-wzJj4apFl0886jb2wtNYM__lbkdX88xC65Y0SSgxy_FPVU-aYrF3gOYZaeTqBGafgrJaI0ZQ-MOiMb_RHCZAFLr_hFnb57h0typsXi2kXfwsitQP0KLR8aG7n4GV_Ala9-30nuWvHOXPDGwe4tFr9YqtCK7YPXUHNFM18b-rxoRfA" 
-                 alt="Doctor Profile" 
-                 width={56} 
-                 height={56}
-                 className="object-cover w-full h-full"
-               /> */}
+
              </div>
              <div className="flex-1">
                <h3 className="text-base font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
@@ -224,7 +178,7 @@ export default function PatientConsultation() {
             <div className="flex justify-start">
               <div className="max-w-[70%]">
                 <div className="bg-[var(--color-surface-container-highest)] text-[var(--color-on-surface)] rounded-lg rounded-tl-none p-3 shadow-sm border border-[var(--color-outline-variant)]/30">
-                  <p className="text-sm">Good morning, John. I see you're experiencing some chest discomfort. Can you tell me more about when it started?</p>
+                  <p className="text-sm">Good morning, John. I see you&apos;re experiencing some chest discomfort. Can you tell me more about when it started?</p>
                 </div>
                 <p className="text-xs text-[var(--color-on-surface-variant)] text-left mt-1">Dr. Smith • 10:02 AM</p>
               </div>
@@ -254,7 +208,7 @@ export default function PatientConsultation() {
             <div className="flex justify-end">
               <div className="max-w-[70%]">
                 <div className="bg-[var(--color-primary)] text-white rounded-lg rounded-tr-none p-3 shadow-sm">
-                  <p className="text-sm">No, it doesn't spread. It usually goes away after about 10 minutes if I sit down and rest.</p>
+                  <p className="text-sm">No, it doesn&apos;t spread. It usually goes away after about 10 minutes if I sit down and rest.</p>
                 </div>
                 <p className="text-xs text-[var(--color-on-surface-variant)] text-right mt-1">10:07 AM</p>
               </div>
