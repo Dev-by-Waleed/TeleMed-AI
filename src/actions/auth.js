@@ -1,6 +1,6 @@
 "use server"
 import { createClient } from "@/lib/supabase/server"
-import { getUserRole } from "@/lib/supabase/profile"
+import { getUserRole, hasCompletedOnboarding } from "@/lib/supabase/profile"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -110,6 +110,13 @@ export async function loginAction(prevState, formData) {
   } else if (userRole === "doctor") {
     return { destination: "/doctor/dashboard" }
   } else {
+    // Patients who registered but haven't completed onboarding yet are
+    // sent back to onboarding so their medical profile is finished before
+    // they reach the dashboard.
+    const completed = await hasCompletedOnboarding(supabase, data.user.id)
+    if (!completed) {
+      return { destination: "/features/onboarding" }
+    }
     return { destination: "/patient/dashboard" }
   }
 }

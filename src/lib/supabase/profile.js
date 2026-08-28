@@ -23,3 +23,21 @@ export async function getUserRole(supabase, userId) {
     return 'patient'
   }
 }
+
+// Whether the user has completed onboarding (saved a medical profile row).
+// Used to re-show onboarding on login if a patient skipped it at signup.
+export async function hasCompletedOnboarding(supabase, userId) {
+  if (!userId) return true
+  try {
+    const { data } = await supabase
+      .from('patient_profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle()
+
+    return !!data
+  } catch (err) {
+    console.error("hasCompletedOnboarding failed:", err)
+    return true
+  }
+}

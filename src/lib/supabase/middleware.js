@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
-import { getUser, getUserRole } from '@/lib/supabase/profile'
+import { getUser, getUserRole, hasCompletedOnboarding } from '@/lib/supabase/profile'
 
 // Boundary-safe prefix check: matches `/prefix` exactly or `/prefix/...`,
 // but not `/prefixsomething` (avoids accidental path collisions).
@@ -83,6 +83,17 @@ export async function updateSession(request) {
 
         if (pathStartsWith(pathname, '/patient') && userRole !== 'patient' && userRole !== 'admin') {
             return NextResponse.redirect(new URL('/unauthorized', request.url))
+        }
+
+        // Patients who haven't completed onboarding are kept on the onboarding
+        // page until they save their medical profile, instead of landing on
+        // an empty dashboard. Applies to both the login action and direct
+        // navigation to any /patient/* route.
+        if (pathStartsWith(pathname, '/patient') && userRole === 'patient') {
+            const completed = await hasCompletedOnboarding(supabase, user.id)
+            if (!completed) {
+                return NextResponse.redirect(new URL('/features/onboarding', request.url))
+            }
         }
 
         // Onboarding lives under /features and is a patient flow.
