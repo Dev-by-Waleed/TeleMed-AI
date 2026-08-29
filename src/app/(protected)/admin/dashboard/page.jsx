@@ -1,18 +1,23 @@
 import { Users, Stethoscope, FileText, ShieldAlert } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata = {
   title: "Admin Dashboard | TeleMed AI",
   description: "TeleMed AI admin dashboard.",
 }
 
-const stats = [
-  { label: 'Total Patients', value: '12,500', icon: Users },
-  { label: 'Active Doctors', value: '1,200', icon: Stethoscope },
-  { label: 'Consultations', value: '25,000', icon: FileText },
-  { label: 'Pending Reviews', value: '48', icon: ShieldAlert },
-]
+export default async function AdminDashboard() {
+  const supabase = await createClient()
+  const { data } = await supabase.rpc('admin_get_stats')
+  const s = data?.[0]
 
-export default function AdminDashboard() {
+  const stats = [
+    { label: 'Total Patients', value: s?.total_patients ?? 0, icon: Users },
+    { label: 'Active Doctors', value: s?.active_doctors ?? 0, icon: Stethoscope },
+    { label: 'Consultations', value: s?.total_consultations ?? 0, icon: FileText },
+    { label: 'Pending Reviews', value: s?.pending_reviews ?? 0, icon: ShieldAlert },
+  ]
+
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)] font-sans antialiased">
       <main className="p-6 md:p-10 max-w-[1440px] mx-auto">

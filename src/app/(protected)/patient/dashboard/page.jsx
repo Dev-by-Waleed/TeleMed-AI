@@ -1,48 +1,41 @@
-'use client';
-
 import React from 'react';
+import { createClient } from '@/lib/supabase/server';
+import { getUser } from '@/lib/supabase/profile';
 import {
   Filter,
   Star,
   Clock,
   Video,
   VideoOff,
-  MoreHorizontal,
   Pill,
   FileText,
 } from 'lucide-react';
 
-const availableDoctors = [
-  { 
-    id: '1',
-    name: 'Dr. Emily Chen',
-    specialty: 'Cardiology',
-    rating: 4.9,
-    reviews: 128,
-    avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDIPZ8iXzWEZ7VCl-MpdapGYFf2voe6hf86QuIDJ2c35STIC1PFFzmEOT862CLpJ6r_SpBBco5Omho2Ms_RmrkDUAmhDkwukujcO_xW-PlgLTcBsVKmcWwidGgmXiJsGE94tJ-kwrV4t8---9MUbwPWhCTWAbs7BzF4cd9JHRsCMb3nkAzHImEUmRH1-12BnP1tP7g7tyYXl0qdFPLrOF0SfQYcaImKkVoJQ7JcXSD_CjR-B5TNHbgUPDvHAhbStq50459klIlqjw',
-  },
-  {
-    id: '2',
-    name: 'Dr. James Wilson',
-    specialty: 'General Practice',
-    rating: 4.7,
-    reviews: 85,
-    avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAMVcsyJUZ-W6FZSVvGxtWpJwp2cX2MhP5oejopfssYdqx5C8RSbJPsK6nPOItXGmEScy79kMjhCpGwEvozOxAx_SVFyu7-wzJj4apFl0886jb2wtNYM__lbkdX88xC65Y0SSgxy_FPVU-aYrF3gOYZaeTqBGafgrJaI0ZQ-MOiMb_RHCZAFLr_hFnb57h0typsXi2kXfwsitQP0KLR8aG7n4GV_Ala9-30nuWvHOXPDGwe4tFr9YqtCK7YPXUHNFM18b-rxoRfA',
-  },
-  {
-    id: '3',
-    name: 'Dr. Sarah Jenkins',
-    specialty: 'Dermatology',
-    rating: 4.8,
-    reviews: 210,
-    avatar:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBKWF3zWGx04ZIHTj4H-rSXerqPinUK50M9nO7igyimwR8AxoBoX5sy_FZeih1_tpiiHDhNyZfbIK270UzuuBUp91h3xyE4I1YDF21ai4CtPwnR_d02FMGhTJd3WKe9LClf4J2RQtJVHlaQcxzm9UxW0RtGFDpfvAEAYTlgOX7KPDz_OTUe9_8amW8oxRrc5J8uazZckhGhgxfY_7jFdLNjuHGtXmR8a-q-uoV1f8eIuF5a6wUtGpVgqAfivJpyBo6m9wuUG4-elA',
-  },
-];
+export default async function PatientDashboard() {
+  const supabase = await createClient()
+  const user = await getUser(supabase)
 
-export default function PatientDashboard() {
+  const fullName = user?.user_metadata?.full_name || user?.email || 'there'
+  const firstName = fullName.split(' ')[0]
+
+  // Real dynamic data from Supabase (RLS scopes results to the caller)
+  const { data: availableDoctors = [] } = await supabase
+    .from('doctors')
+    .select('id, full_name, specialty, rating, reviews_count')
+    .order('rating', { ascending: false })
+
+  // Next appointment via RPC (joins doctors/profiles for name + specialty
+  // instead of relying on auth.users FK embeds)
+  const { data: nextResult = [] } = await supabase.rpc('get_patient_next_appointment')
+  const nextAppointment = nextResult[0] || null
+
+  function fmtTime(iso) {
+    return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  }
+  function fmtEnd(iso, min) {
+    return new Date(new Date(iso).getTime() + min * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  }
+
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)] font-sans antialiased">
       {/* Main Container */}
@@ -50,7 +43,7 @@ export default function PatientDashboard() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-semibold text-[var(--color-foreground)] mb-1">
-            Welcome back, Sarah
+            Welcome back, {firstName}
           </h1>
           <p className="text-base text-[var(--color-on-surface-variant)]">
             Here is an overview of your health dashboard today.
@@ -80,11 +73,11 @@ export default function PatientDashboard() {
                 className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6 flex flex-col sm:flex-row gap-6 items-start sm:items-center hover:shadow-md transition-shadow"
               >
                 <div className="w-20 h-20 rounded-full overflow-hidden shrink-0 relative bg-[var(--color-surface-container-high)] flex items-center justify-center text-lg font-bold text-[var(--color-primary)]">
-                  {doc.name.charAt(4)}
+                  {doc.full_name.charAt(0)}
                 </div>
                 <div className="flex-grow">
                   <h3 className="text-lg font-semibold text-[var(--color-foreground)]">
-                    {doc.name}
+                    {doc.full_name}
                   </h3>
                   <p className="text-sm text-[var(--color-on-surface-variant)]">
                     {doc.specialty}
@@ -95,7 +88,7 @@ export default function PatientDashboard() {
                       {doc.rating}
                     </span>
                     <span className="text-xs text-[var(--color-outline)]">
-                      ({doc.reviews} reviews)
+                      ({doc.reviews_count} reviews)
                     </span>
                   </div>
                 </div>
@@ -124,40 +117,43 @@ export default function PatientDashboard() {
               <div className="pl-2">
                 <div className="flex justify-between items-start mb-3">
                   <span className="bg-[var(--color-secondary)] text-[var(--color-foreground)] px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider">
-                    Today
+                    {nextAppointment ? (new Date(nextAppointment.scheduled_at).toDateString() === new Date().toDateString() ? 'Today' : 'Upcoming') : 'No Upcoming'}
                   </span>
+                </div>
+
+                {nextAppointment ? (
+                  <div className="mb-6 space-y-2">
+                    <h3 className="text-lg font-semibold text-[var(--color-foreground)]">
+                      {nextAppointment.doctor_name || 'Doctor'}
+                    </h3>
+                    <p className="text-sm text-[var(--color-on-surface-variant)] flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-[var(--color-outline)]" />
+                      {fmtTime(nextAppointment.scheduled_at)} - {fmtEnd(nextAppointment.scheduled_at, nextAppointment.duration_min)}
+                    </p>
+                    <p className="text-sm text-[var(--color-on-surface-variant)] flex items-center gap-2">
+                      <Video className="w-4 h-4 text-[var(--color-outline)]" />
+                      Video Consultation
+                    </p>
+                    <p className="text-xs text-[var(--color-on-surface-variant)] capitalize">
+                      {nextAppointment.specialty} • {nextAppointment.reason || 'Consultation'}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-[var(--color-on-surface-variant)] mb-6">
+                    You have no upcoming appointments. Browse doctors above to book one.
+                  </p>
+                )}
+
+                {nextAppointment && (
                   <button
+                    disabled
                     type="button"
-                    aria-label="Options"
-                    className="text-[var(--color-outline)] hover:text-[var(--color-foreground)] transition-colors"
+                    className="w-full bg-[var(--color-secondary)] text-[var(--color-on-surface-variant)]/60 cursor-not-allowed px-4 py-2.5 rounded-lg text-sm font-semibold flex justify-center items-center gap-2 border border-[var(--color-outline-variant)]/40"
                   >
-                    <MoreHorizontal className="w-5 h-5" />
+                    <VideoOff className="w-4 h-4" />
+                    Join Chat (Available at {fmtTime(nextAppointment.scheduled_at)})
                   </button>
-                </div>
-
-                <div className="mb-6 space-y-2">
-                  <h3 className="text-lg font-semibold text-[var(--color-foreground)]">
-                    Dr. Marcus Vance
-                  </h3>
-                  <p className="text-sm text-[var(--color-on-surface-variant)] flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[var(--color-outline)]" />
-                    2:30 PM - 3:00 PM
-                  </p>
-                  <p className="text-sm text-[var(--color-on-surface-variant)] flex items-center gap-2">
-                    <Video className="w-4 h-4 text-[var(--color-outline)]" />
-                    Video Consultation
-                  </p>
-                </div>
-
-                {/* Disabled Chat Button */}
-                <button
-                  disabled
-                  type="button"
-                  className="w-full bg-[var(--color-secondary)] text-[var(--color-on-surface-variant)]/60 cursor-not-allowed px-4 py-2.5 rounded-lg text-sm font-semibold flex justify-center items-center gap-2 border border-[var(--color-outline-variant)]/40"
-                >
-                  <VideoOff className="w-4 h-4" />
-                  Join Chat (Available at 2:25 PM)
-                </button>
+                )}
               </div>
             </div>
 

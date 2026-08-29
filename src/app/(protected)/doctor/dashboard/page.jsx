@@ -1,8 +1,5 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import createClient from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
+import { getUser } from '@/lib/supabase/profile';
 import {
   Menu,
   Activity,
@@ -14,22 +11,27 @@ import {
   CalendarDays
 } from 'lucide-react';
 
-export default function DoctorDashboard() {
-  const [mounted, setMounted] = useState(false)
-  const [currentDate, setCurrentDate] = useState('')
-  const [userName, setUserName] = useState('')
+export default async function DoctorDashboard() {
+  const supabase = await createClient()
+  const user = await getUser(supabase)
 
-  useEffect(() => {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+  const userName = user?.user_metadata?.full_name || user?.email || 'Doctor'
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+  const currentDate = new Date().toLocaleDateString('en-US', options)
 
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      const user = data?.user
-      setUserName(user?.user_metadata?.full_name || user?.email || '')
-      setCurrentDate(new Date().toLocaleDateString('en-US', options))
-      setMounted(true)
-    })
-  }, [])
+  // Real dynamic data (RLS scopes appointments to this doctor,
+  // RPC joins profiles for patient names so we don't depend on auth.users FKs)
+  const [{ data: todayAppointments = [] }, { data: nextResult = [] }] = await Promise.all([
+    supabase.rpc('get_doctor_today_appointments'),
+    supabase.rpc('get_doctor_next_appointment'),
+  ])
+
+  const upcoming = nextResult[0] || null
+  const totalToday = todayAppointments.length
+
+  function fmtTime(iso) {
+    return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  }
 
   return (
     <>
@@ -58,7 +60,7 @@ export default function DoctorDashboard() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-3">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight" style={{ color: 'var(--color-on-background)' }}>
-                Good Morning, {userName || 'Doctor'}
+                Good Morning, {userName}
               </h1>
               <p className="text-sm mt-1" style={{ color: 'var(--color-on-surface-variant)' }}>
                 Here is your clinical overview for today.
@@ -74,7 +76,7 @@ export default function DoctorDashboard() {
               }}
             >
               <CalendarDays className="w-4 h-4" />
-              <span>{mounted ? currentDate : ''}</span>
+              <span>{currentDate}</span>
             </div>
           </div>
 
@@ -96,8 +98,8 @@ export default function DoctorDashboard() {
                 <Activity className="w-5 h-5" style={{ color: 'var(--color-primary-container)' }} />
               </div>
               <div className="mt-6 flex items-baseline gap-2">
-                <span className="text-4xl font-bold" style={{ color: 'var(--color-on-surface)' }}>12</span>
-                <span className="text-xs" style={{ color: 'var(--color-on-surface-variant)' }}>Scheduled Today</span>
+                <span className="text-4xl font-bold" style={{ color: 'var(--color-on-surface)' }}>{totalToday}</span>
+                <span className="text-xs" style={{ color: 'var(--color-on-surface-variant)' }}>Today</span>
               </div>
             </div>
 
@@ -140,9 +142,13 @@ export default function DoctorDashboard() {
                 <Clock className="w-5 h-5" style={{ color: 'var(--color-primary-container)' }} />
               </div>
               <div className="mt-6 relative z-10">
-                <p className="text-xl font-bold" style={{ color: 'var(--color-on-surface)' }}>10:30 AM</p>
+                <p className="text-xl font-bold" style={{ color: 'var(--color-on-surface)' }}>
+                  {upcoming ? fmtTime(upcoming.scheduled_at) : '—'}
+                </p>
                 <p className="text-xs mt-1" style={{ color: 'var(--color-on-surface-variant)' }}>
-                  Sarah Jenkins • Follow-up
+                  {upcoming
+                    ? `${upcoming.patient_name || 'Patient'} • ${upcoming.reason || 'Consultation'}`
+                    : 'No upcoming appointments'}
                 </p>
               </div>
             </div>
@@ -169,117 +175,61 @@ Today&apos;s Appointments
 
               <div className="flex-1 overflow-y-auto p-2">
                 <ul className="divide-y" style={{ borderColor: 'var(--color-outline-variant)' }}>
-                  
-                  {/* Appointment Item 1 */}
-                  <li className="p-3 rounded-lg transition-colors flex items-center justify-between hover:bg-[var(--color-surface-container-low)]">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs"
-                        style={{
-                          backgroundColor: 'var(--color-surface-container-high)',
-                          color: 'var(--color-primary)',
-                        }}
-                      >
-                        SJ
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
-                          Sarah Jenkins
-                        </p>
-                        <p className="text-xs" style={{ color: 'var(--color-on-surface-variant)' }}>
-                          Cardiovascular Checkup
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-xs font-medium" style={{ color: 'var(--color-on-surface)' }}>10:30 AM</p>
-                        <p className="text-[10px]" style={{ color: 'var(--color-on-surface-variant)' }}>30 Min</p>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
-                        Confirmed
-                      </span>
-                      <button className="hover:opacity-75 transition-opacity" style={{ color: 'var(--color-on-surface-variant)' }}>
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </li>
-
-                  {/* Appointment Item 2 */}
-                  <li className="p-3 rounded-lg transition-colors flex items-center justify-between hover:bg-[var(--color-surface-container-low)]">
-                    <div className="flex items-center gap-3">
-                      <Image
-                        alt="Michael Chang"
-                        width={40}
-                        height={40}
-                        className="w-10 h-10 rounded-full object-cover border"
-                        style={{ borderColor: 'var(--color-outline-variant)' }}
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDKvm1T-68t4W6e9mzZ_nbeYQgLAYC5wbnwtBTEJXouVsfN5lh3ek9HdRMHf4zTKCqDeZgKIUucV4ACT00VS-ZBP_xqWER8MfGEuMnBxMPmWWVt2pKBTr2g2GAJZzol7KbxBE_LjB9AOoQkvidnIlsJQCnptxRUoV4ouybYYTEdhNgN02dnsqCPriz6kpb_Uk75ktZtuvPgcu9P3jxnzUjMhZRKfGiy4htgLa5CFX_SQhvZIQQerwiFOh4ul3m1fJoeIUHPWn2UA"
-                      />
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
-                          Michael Chang
-                        </p>
-                        <p className="text-xs" style={{ color: 'var(--color-on-surface-variant)' }}>
-                          Lab Results Review
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-xs font-medium" style={{ color: 'var(--color-on-surface)' }}>11:15 AM</p>
-                        <p className="text-[10px]" style={{ color: 'var(--color-on-surface-variant)' }}>15 Min</p>
-                      </div>
-                      <span
-                        className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                        style={{
-                          backgroundColor: 'var(--color-surface-container-high)',
-                          color: 'var(--color-on-surface-variant)',
-                        }}
-                      >
-                        In Waiting Room
-                      </span>
-                      <button className="hover:opacity-75 transition-opacity" style={{ color: 'var(--color-on-surface-variant)' }}>
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </li>
-
-                  {/* Appointment Item 3 */}
-                  <li className="p-3 rounded-lg transition-colors flex items-center justify-between hover:bg-[var(--color-surface-container-low)]">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs border"
-                        style={{
-                          backgroundColor: 'var(--color-surface-container-low)',
-                          color: 'var(--color-on-surface)',
-                          borderColor: 'var(--color-outline-variant)',
-                        }}
-                      >
-                        ER
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
-                          Elena Rodriguez
-                        </p>
-                        <p className="text-xs" style={{ color: 'var(--color-on-surface-variant)' }}>
-                          Initial Consultation
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-xs font-medium" style={{ color: 'var(--color-on-surface)' }}>1:00 PM</p>
-                        <p className="text-[10px]" style={{ color: 'var(--color-on-surface-variant)' }}>45 Min</p>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800">
-                        Pending
-                      </span>
-                      <button className="hover:opacity-75 transition-opacity" style={{ color: 'var(--color-on-surface-variant)' }}>
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </li>
+                  {todayAppointments.length === 0 ? (
+                    <li className="p-3 text-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
+                      No appointments scheduled for today.
+                    </li>
+                  ) : (
+                    todayAppointments.map((appt) => {
+                      const patientName = appt.patient_name || 'Patient'
+                      const initials = patientName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+                      return (
+                        <li key={appt.id} className="p-3 rounded-lg transition-colors flex items-center justify-between hover:bg-[var(--color-surface-container-low)]">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs"
+                              style={{
+                                backgroundColor: 'var(--color-surface-container-high)',
+                                color: 'var(--color-primary)',
+                              }}
+                            >
+                              {initials}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
+                                {patientName}
+                              </p>
+                              <p className="text-xs" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                {appt.reason || 'Consultation'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right hidden sm:block">
+                              <p className="text-xs font-medium" style={{ color: 'var(--color-on-surface)' }}>
+                                {fmtTime(appt.scheduled_at)}
+                              </p>
+                              <p className="text-[10px]" style={{ color: 'var(--color-on-surface-variant)' }}>
+                                {appt.duration_min} Min
+                              </p>
+                            </div>
+                            <span
+                              className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                              style={
+                                (appt.status === 'confirmed' && { backgroundColor: 'var(--color-secondary)', color: 'var(--color-primary-dark)' }) ||
+                                { backgroundColor: 'var(--color-surface-container-high)', color: 'var(--color-on-surface-variant)' }
+                              }
+                            >
+                              {appt.status}
+                            </span>
+                            <button className="hover:opacity-75 transition-opacity" style={{ color: 'var(--color-on-surface-variant)' }}>
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </li>
+                      )
+                    })
+                  )}
                 </ul>
               </div>
             </div>
