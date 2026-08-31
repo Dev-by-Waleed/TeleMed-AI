@@ -3,11 +3,8 @@ import { getUser } from '@/lib/supabase/profile';
 import {
   Menu,
   Activity,
-  Smile,
   Clock,
   MoreVertical,
-  Pill,
-  MessageSquare,
   CalendarDays
 } from 'lucide-react';
 
@@ -85,7 +82,7 @@ export default async function DoctorDashboard() {
             
             {/* Summary Widget 1 */}
             <div
-              className="md:col-span-4 border rounded-xl p-4 shadow-sm flex flex-col justify-between"
+              className="md:col-span-6 border rounded-xl p-4 shadow-sm flex flex-col justify-between"
               style={{
                 backgroundColor: 'var(--color-surface-card)',
                 borderColor: 'var(--color-outline-variant)',
@@ -105,27 +102,7 @@ export default async function DoctorDashboard() {
 
             {/* Summary Widget 2 */}
             <div
-              className="md:col-span-4 border rounded-xl p-4 shadow-sm flex flex-col justify-between"
-              style={{
-                backgroundColor: 'var(--color-surface-card)',
-                borderColor: 'var(--color-outline-variant)',
-              }}
-            >
-              <div className="flex justify-between items-start">
-                <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-on-surface-variant)' }}>
-                  Patient Satisfaction
-                </h3>
-                <Smile className="w-5 h-5" style={{ color: 'var(--color-tertiary-container)' }} />
-              </div>
-              <div className="mt-6 flex items-baseline gap-2">
-                <span className="text-4xl font-bold" style={{ color: 'var(--color-on-surface)' }}>4.9</span>
-                <span className="text-xs" style={{ color: 'var(--color-on-surface-variant)' }}>/ 5.0 Average</span>
-              </div>
-            </div>
-
-            {/* Summary Widget 3 */}
-            <div
-              className="md:col-span-4 border rounded-xl p-4 shadow-sm flex flex-col justify-between relative overflow-hidden group"
+              className="md:col-span-6 border rounded-xl p-4 shadow-sm flex flex-col justify-between relative overflow-hidden group"
               style={{
                 backgroundColor: 'var(--color-surface-card)',
                 borderColor: 'var(--color-outline-variant)',
@@ -225,6 +202,13 @@ Today&apos;s Appointments
                             <button className="hover:opacity-75 transition-opacity" style={{ color: 'var(--color-on-surface-variant)' }}>
                               <MoreVertical className="w-4 h-4" />
                             </button>
+                            <a
+                              href={`/doctor/consultation/${appt.id}`}
+                              className="text-xs font-semibold inline-flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors hover:opacity-90"
+                              style={{ backgroundColor: 'var(--color-secondary)', color: 'var(--color-primary-dark)' }}
+                            >
+                              Open
+                            </a>
                           </div>
                         </li>
                       )
@@ -251,72 +235,10 @@ Today&apos;s Appointments
                 </h2>
               </div>
 
-              <div className="flex-1 p-3 space-y-3 overflow-y-auto">
-                
-                {/* Request Card 1 */}
-                <div
-                  className="rounded-lg p-3 border transition-all hover:border-[var(--color-primary-fixed-dim)]"
-                  style={{
-                    backgroundColor: 'var(--color-surface-container-low)',
-                    borderColor: 'var(--color-outline-variant)',
-                  }}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <div className="flex items-center gap-1.5" style={{ color: 'var(--color-on-surface-variant)' }}>
-                      <Pill className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Refill Request</span>
-                    </div>
-                    <span className="text-[10px]" style={{ color: 'var(--color-on-surface-variant)' }}>2h ago</span>
-                  </div>
-                  <p className="text-xs font-semibold" style={{ color: 'var(--color-on-surface)' }}>
-                    Lisinopril 10mg
-                  </p>
-                  <p className="text-[11px] mb-3" style={{ color: 'var(--color-on-surface-variant)' }}>
-                    Requested by Robert Davis
-                  </p>
-                  <button
-                    className="w-full py-1.5 rounded text-xs font-semibold transition-colors hover:opacity-90"
-                    style={{
-                      backgroundColor: 'var(--color-secondary)',
-                      color: 'var(--color-primary-dark)',
-                    }}
-                  >
-                    Review
-                  </button>
-                </div>
-
-                {/* Request Card 2 */}
-                <div
-                  className="rounded-lg p-3 border transition-all hover:border-[var(--color-primary-fixed-dim)]"
-                  style={{
-                    backgroundColor: 'var(--color-surface-container-low)',
-                    borderColor: 'var(--color-outline-variant)',
-                  }}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <div className="flex items-center gap-1.5" style={{ color: 'var(--color-on-surface-variant)' }}>
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">Message</span>
-                    </div>
-                    <span className="text-[10px] font-bold" style={{ color: 'var(--color-error)' }}>Urgent</span>
-                  </div>
-                  <p className="text-xs font-semibold" style={{ color: 'var(--color-on-surface)' }}>
-                    Post-op swelling inquiry
-                  </p>
-                  <p className="text-[11px] mb-3" style={{ color: 'var(--color-on-surface-variant)' }}>
-                    From Alicia Keys
-                  </p>
-                  <button
-                    className="w-full py-1.5 rounded text-xs font-semibold transition-colors hover:opacity-90"
-                    style={{
-                      backgroundColor: 'var(--color-primary)',
-                      color: 'var(--color-on-primary)',
-                    }}
-                  >
-                    Reply
-                  </button>
-                </div>
-
+              <div className="flex-1 p-3 flex items-center justify-center">
+                <p className="text-sm text-center" style={{ color: 'var(--color-on-surface-variant)' }}>
+                  No pending requests
+                </p>
               </div>
             </div>
 

@@ -115,6 +115,109 @@ export default function PatientOnboardingForm() {
                 className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
               />
             </div>
+
+            {/* Emergency Contact */}
+            <div className="flex flex-col gap-1 md:col-span-2">
+              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="emergencyContact">
+                Emergency Contact Number
+              </label>
+              <input
+                type="tel"
+                id="emergencyContact"
+                name="emergencyContact"
+                placeholder="e.g. +1 555 123 4567"
+                required
+                className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
+              />
+            </div>
+          </div>
+
+          <div className="w-full h-px bg-[var(--color-outline-variant)]/50 my-4"></div>
+
+          {/* Section 1b: Optional Details */}
+          <div className="space-y-6">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--color-on-surface-variant)]">
+              Optional Details
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Blood Group */}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="bloodGroup">
+                  Blood Group
+                </label>
+                <select
+                  id="bloodGroup"
+                  name="bloodGroup"
+                  defaultValue=""
+                  className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
+                >
+                  <option value="">Select blood group</option>
+                  {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
+                    <option key={bg} value={bg}>{bg}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Smoking Status */}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="smokingStatus">
+                  Smoking Status
+                </label>
+                <select
+                  id="smokingStatus"
+                  name="smokingStatus"
+                  defaultValue=""
+                  className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
+                >
+                  <option value="">Select smoking status</option>
+                  <option value="never">Never smoked</option>
+                  <option value="former">Former smoker</option>
+                  <option value="current">Current smoker</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Past Surgeries */}
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="pastSurgeries">
+                Past Surgeries
+              </label>
+              <textarea
+                id="pastSurgeries"
+                name="pastSurgeries"
+                rows={2}
+                placeholder="List any past surgeries, if any"
+                className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
+              />
+            </div>
+
+            {/* Chronic Illness Notes */}
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="chronicIllnessNotes">
+                Chronic Illness Notes
+              </label>
+              <textarea
+                id="chronicIllnessNotes"
+                name="chronicIllnessNotes"
+                rows={2}
+                placeholder="Additional notes about any chronic illnesses"
+                className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="notes">
+                General Notes
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                rows={2}
+                placeholder="Anything else you'd like to share"
+                className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
+              />
+            </div>
           </div>
 
           <div className="w-full h-px bg-[var(--color-outline-variant)]/50 my-4"></div>

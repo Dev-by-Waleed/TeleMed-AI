@@ -6,7 +6,6 @@ import {
   Star,
   Clock,
   Video,
-  VideoOff,
   Pill,
   FileText,
 } from 'lucide-react';
@@ -93,12 +92,12 @@ export default async function PatientDashboard() {
                   </div>
                 </div>
                 <div className="mt-2 sm:mt-0 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    className="w-full sm:w-auto bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] transition-colors px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm"
+                  <a
+                    href="/patient/appointments"
+                    className="block w-full sm:w-auto text-center bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] transition-colors px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm"
                   >
                     Book Appointment
-                  </button>
+                  </a>
                 </div>
               </div>
             ))}
@@ -145,14 +144,13 @@ export default async function PatientDashboard() {
                 )}
 
                 {nextAppointment && (
-                  <button
-                    disabled
-                    type="button"
-                    className="w-full bg-[var(--color-secondary)] text-[var(--color-on-surface-variant)]/60 cursor-not-allowed px-4 py-2.5 rounded-lg text-sm font-semibold flex justify-center items-center gap-2 border border-[var(--color-outline-variant)]/40"
+                  <a
+                    href={`/patient/consultation/${nextAppointment.id}`}
+                    className="w-full bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] px-4 py-2.5 rounded-lg text-sm font-semibold flex justify-center items-center gap-2 shadow-sm transition-colors"
                   >
-                    <VideoOff className="w-4 h-4" />
-                    Join Chat (Available at {fmtTime(nextAppointment.scheduled_at)})
-                  </button>
+                    <Video className="w-4 h-4" />
+                    Join Chat
+                  </a>
                 )}
               </div>
             </div>

@@ -11,6 +11,9 @@ const NAV_CONFIG = {
     { label: 'Dashboard', path: '/patient/dashboard' },
     { label: 'Medical Report', path: '/patient/reports' },
     { label: 'Consultation', path: '/patient/consultation' }
+  ],
+  admin: [
+    { label: 'Dashboard', path: '/admin/dashboard' }
   ]
 }
 

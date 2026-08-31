@@ -2,6 +2,8 @@
 import { createClient } from "@/lib/supabase/server"
 
 const ALLOWED_GENDERS = ["male", "female", "non-binary", "prefer-not-to-say"]
+const ALLOWED_BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
+const ALLOWED_SMOKING = ["never", "former", "current"]
 
 function cleanText(value) {
   const trimmed = (value || "").trim()
@@ -32,6 +34,23 @@ export async function saveOnboardingAction(prevState, formData) {
     return { error: "Please select a valid gender." }
   }
 
+  // Emergency contact is required by the PRD.
+  const emergencyContact = cleanText(formData.get("emergencyContact"))
+  if (!emergencyContact) {
+    return { error: "Emergency contact number is required." }
+  }
+
+  // Optional dropdowns are validated when provided.
+  const bloodGroup = formData.get("bloodGroup") || ""
+  if (bloodGroup && !ALLOWED_BLOOD_GROUPS.includes(bloodGroup)) {
+    return { error: "Please select a valid blood group." }
+  }
+
+  const smokingStatus = formData.get("smokingStatus") || ""
+  if (smokingStatus && !ALLOWED_SMOKING.includes(smokingStatus)) {
+    return { error: "Please select a valid smoking status." }
+  }
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -50,6 +69,13 @@ export async function saveOnboardingAction(prevState, formData) {
     allergies: cleanText(formData.get("allergies")),
     medications: cleanText(formData.get("medications")),
     conditions: cleanText(formData.get("conditions")),
+    emergency_contact: emergencyContact,
+    blood_group: bloodGroup || null,
+    notes: cleanText(formData.get("notes")),
+    past_surgeries: cleanText(formData.get("pastSurgeries")),
+    smoking_status: smokingStatus || null,
+    chronic_illness_notes: cleanText(formData.get("chronicIllnessNotes")),
+    completed_onboarding: true,
   }
 
   const { error } = await supabase.from("patient_profiles").upsert(profile)
