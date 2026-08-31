@@ -14,19 +14,26 @@ export default function HomeSearch() {
   const [activeTab, setActiveTab] = useState(TABS[0])
 
   return (
-    <div className="bg-card p-3 rounded-2xl shadow-xl max-w-xl border border-border transition-colors">
-      <div className="flex items-center gap-2 mb-3 border-b border-border pb-2">
+    <div
+      className="p-3 rounded-2xl shadow-xl max-w-xl border transition-colors"
+      style={{ backgroundColor: 'var(--color-surface-bright)', borderColor: 'var(--color-outline-variant)' }}
+    >
+      <div className="flex items-center gap-2 mb-3 border-b pb-2" style={{ borderColor: 'var(--color-outline-variant)' }}>
         {TABS.map((tab) => {
           const Icon = TAB_ICONS[tab]
+          const isActive = activeTab === tab
           return (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                activeTab === tab
-                  ? 'text-foreground bg-accent'
-                  : 'text-muted-foreground hover:bg-muted'
+                isActive ? '' : 'hover:bg-[var(--color-surface-container-low)]'
               }`}
+              style={
+                isActive
+                  ? { backgroundColor: 'var(--color-primary-container)', color: 'var(--color-on-primary-container)' }
+                  : { color: 'var(--color-on-surface-variant)' }
+              }
             >
               <Icon className="w-4 h-4" />
               {tab}
@@ -35,15 +42,19 @@ export default function HomeSearch() {
         })}
       </div>
       <div className="flex items-center gap-3">
-        <div className="flex-1 flex items-center gap-3 bg-muted px-4 py-3 rounded-xl transition-colors">
-          <Search className="w-5 h-5 text-muted-foreground" />
+        <div className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl transition-colors" style={{ backgroundColor: 'var(--color-surface-container-low)' }}>
+          <Search className="w-5 h-5" style={{ color: 'var(--color-on-surface-variant)' }} />
           <input
             type="text"
             placeholder="Search doctor, speciality, or symptoms..."
-            className="bg-transparent border-none outline-none w-full text-sm placeholder:text-muted-foreground text-foreground"
+            className="bg-transparent border-none outline-none w-full text-sm placeholder:text-[var(--color-on-surface-variant)]"
+            style={{ color: 'var(--color-foreground)' }}
           />
         </div>
-        <button className="bg-primary text-primary-foreground px-8 py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors">
+        <button
+          className="px-8 py-3 rounded-xl font-medium hover:opacity-90 transition-colors"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)' }}
+        >
           Search
         </button>
       </div>

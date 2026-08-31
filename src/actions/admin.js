@@ -3,21 +3,6 @@ import { createClient } from "@/lib/supabase/server"
 import createAdminClient from "@/lib/supabase/admin"
 import { getUser, getUserRole } from "@/lib/supabase/profile"
 
-const SPECIALTIES = [
-  "Cardiology",
-  "Dermatology",
-  "General Practice",
-  "Neurology",
-  "Oncology",
-  "Orthopedics",
-  "Pediatrics",
-  "Psychiatry",
-  "Radiology",
-  "Other",
-]
-
-export { SPECIALTIES }
-
 function randomPassword(len = 12) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%"
   let out = ""
@@ -147,5 +132,71 @@ export async function activateInviteDoctorAction(prevState, formData) {
   await admin.from("profiles").update({ account_status: "active" }).eq("id", doctor.id)
 
   return { success: true, email: String(formData.get("email") || "") }
+}
+
+// Update a user's account_status (active / suspended / invited) and/or role.
+// Called by the admin Doctors and Patients pages. Uses the SECURITY DEFINER
+// RPC so role changes bypass the role-escalation trigger.
+export async function setUserStatusAction(prevState, formData) {
+  const supabase = await createClient()
+  const user = await getUser(supabase)
+  if (!user) {
+    return { error: "You must be signed in." }
+  }
+  const role = await getUserRole(supabase, user.id)
+  if (role !== "admin") {
+    return { error: "Only admins can change account status." }
+  }
+
+  const userId = String(formData.get("user_id") || "")
+  const newStatus = String(formData.get("status") || "")
+  const newRole = String(formData.get("role") || "")
+
+  if (!userId) return { error: "Missing user." }
+
+  const status = ["active", "suspended", "invited"].includes(newStatus) ? newStatus : null
+  const targetRole = ["patient", "doctor", "admin"].includes(newRole) ? newRole : null
+
+  if (!status && !targetRole) return { error: "Nothing to update." }
+
+  const { error } = await supabase.rpc("admin_set_user_status", {
+    p_user_id: userId,
+    p_status: status,
+    p_role: targetRole,
+  })
+  if (error) {
+    console.error("setUserStatus failed:", error.message)
+    return { error: "We couldn't update the account. Please try again." }
+  }
+
+  return { success: true }
+}
+
+// Fetch a patient's full medical profile (admin only). Returns the record
+// fields directly for the patients management drawer.
+export async function getPatientProfileAction(prevState, formData) {
+  const supabase = await createClient()
+  const user = await getUser(supabase)
+  if (!user) {
+    return { error: "You must be signed in." }
+  }
+  const role = await getUserRole(supabase, user.id)
+  if (role !== "admin") {
+    return { error: "Only admins can view patient profiles." }
+  }
+
+  const userId = String(formData.get("user_id") || "")
+  if (!userId) return { error: "Missing user." }
+
+  const { data, error } = await supabase.rpc("admin_get_patient_profile", {
+    p_user_id: userId,
+  })
+  if (error) {
+    console.error("getPatientProfile failed:", error.message)
+    return { error: "We couldn't load the patient profile." }
+  }
+
+  if (!data) return { error: "This patient hasn't completed onboarding." }
+  return { success: true, profile: data }
 }
 

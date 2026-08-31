@@ -20,6 +20,7 @@ export default function ConsultationRoom({
   currentUserName,
   counterpartName,
   doctorSpecialty,
+  role,
   reason,
   initialMessages = [],
   context,
@@ -27,9 +28,14 @@ export default function ConsultationRoom({
   const [messages, setMessages] = useState(initialMessages);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [presence, setPresence] = useState({ doctor: false, patient: false });
   const listRef = useRef(null);
 
   const supabase = createClient();
+
+  // Whom we are in this room: 'patient' when the current user is the patient,
+  // 'doctor' otherwise (admins default to doctor for display purposes).
+  const mySide = role === 'patient' ? 'patient' : 'doctor';
 
   useEffect(() => {
     // Load-history + subscribe are one channel-bound flow on the messages table.
@@ -59,6 +65,39 @@ export default function ConsultationRoom({
   }, [supabase, appointmentId]);
 
   useEffect(() => {
+    // Realtime presence: advertises that this participant is currently in the
+    // room and surfaces whether the doctor / patient have joined. Presence is
+    // cleared automatically when the tab or component unmounts.
+    const channel = supabase.channel(`presence-${appointmentId}`);
+
+    const applyPresence = () => {
+      const state = channel.presenceState();
+      const doctorPresent = Object.values(state).some(
+        (ps) => Array.isArray(ps) && ps.some((p) => p.role === 'doctor')
+      );
+      const patientPresent = Object.values(state).some(
+        (ps) => Array.isArray(ps) && ps.some((p) => p.role === 'patient')
+      );
+      setPresence({ doctor: doctorPresent, patient: patientPresent });
+    };
+
+    channel
+      .on('presence', { event: 'sync' }, applyPresence)
+      .on('presence', { event: 'join' }, applyPresence)
+      .on('presence', { event: 'leave' }, applyPresence)
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ user_id: currentUserId, role: mySide });
+          applyPresence();
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, appointmentId, currentUserId, mySide]);
+
+  useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
@@ -85,6 +124,17 @@ export default function ConsultationRoom({
   function initials(name) {
     return (name || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   }
+
+  // Sender label for a message: show the real name of whoever sent it.
+  function senderName(senderId) {
+    return senderId === currentUserId ? currentUserName : counterpartName;
+  }
+
+  // Chat status summary derived from realtime presence.
+  const statusChips = [];
+  if (presence.doctor) statusChips.push({ side: 'doctor', label: 'Doctor joined' });
+  if (presence.patient) statusChips.push({ side: 'patient', label: 'Patient joined' });
+  const inProgress = presence.doctor && presence.patient;
 
   return (
     <div className="flex flex-col lg:flex-row w-full min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)]">
@@ -175,10 +225,26 @@ export default function ConsultationRoom({
             <h2 className="text-sm font-bold text-[var(--color-on-surface)]">Live Consultation</h2>
             <p className="text-xs text-[var(--color-on-surface-variant)]">Real-time text chat</p>
           </div>
-          <span className="ml-auto flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">
-            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Live
+          <span className={`ml-auto flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full ${inProgress ? 'text-emerald-700 bg-emerald-100' : 'text-amber-700 bg-amber-100'}`}>
+            <span className={`w-2 h-2 rounded-full ${inProgress ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`} />
+            {inProgress ? 'Consultation in progress' : 'Waiting for other party'}
           </span>
         </header>
+
+        {(statusChips.length > 0) && (
+          <div className="px-6 py-2 flex flex-wrap items-center gap-2 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface-bright)]">
+            {statusChips.map((chip) => (
+              <span
+                key={chip.side}
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                style={{ backgroundColor: 'var(--color-surface-container-high)', color: 'var(--color-on-surface-variant)' }}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${chip.side === 'doctor' ? 'bg-sky-500' : 'bg-fuchsia-500'}`} />
+                {chip.label}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div ref={listRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-[var(--color-surface-bright)]">
         {messages.length === 0 && (
@@ -189,15 +255,20 @@ export default function ConsultationRoom({
         {messages.map((m) => {
           const mine = m.sender_id === currentUserId;
           return (
-            <div key={m.id} className={`flex gap-3 ${mine ? 'flex-row-reverse' : ''}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${mine ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)]'}`}>
-                {mine ? initials(currentUserName) : initials(counterpartName)}
-              </div>
-              <div className={`max-w-[70%] p-3 rounded-lg shadow-sm ${mine ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)]/60'}`}>
-                <p className="text-sm leading-relaxed">{m.body}</p>
-                <span className={`text-[10px] mt-1.5 block ${mine ? 'text-white/70' : 'text-[var(--color-on-surface-variant)]'}`}>
-                  {new Date(m.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                </span>
+            <div key={m.id} className={`flex flex-col gap-1.5 ${mine ? 'items-end' : 'items-start'}`}>
+              <span className="text-[11px] font-semibold px-1" style={{ color: 'var(--color-on-surface-variant)' }}>
+                {mine ? currentUserName : senderName(m.sender_id)}
+              </span>
+              <div className={`flex gap-3 ${mine ? 'flex-row-reverse' : ''} w-full`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${mine ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)]'}`}>
+                  {mine ? initials(currentUserName) : initials(senderName(m.sender_id))}
+                </div>
+                <div className={`max-w-[70%] p-3 rounded-lg shadow-sm ${mine ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)]/60'}`}>
+                  <p className="text-sm leading-relaxed">{m.body}</p>
+                  <span className={`text-[10px] mt-1.5 block ${mine ? 'text-white/70' : 'text-[var(--color-on-surface-variant)]'}`}>
+                    {new Date(m.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                </div>
               </div>
             </div>
           );

@@ -1,9 +1,8 @@
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/supabase/profile';
+import AvailableDoctors from './AvailableDoctors';
 import {
-  Filter,
-  Star,
   Clock,
   Video,
   Pill,
@@ -51,57 +50,7 @@ export default async function PatientDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Available Doctors (70% on lg screens) */}
-          <section className="lg:col-span-8 flex flex-col gap-4">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-semibold text-[var(--color-foreground)]">
-                Available Doctors
-              </h2>
-              <button
-                type="button"
-                aria-label="Filter doctors"
-                className="text-[var(--color-outline)] hover:text-[var(--color-primary)] transition-colors"
-              >
-                <Filter className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Doctor Cards List */}
-            {availableDoctors.map((doc) => (
-              <div
-                key={doc.id}
-                className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6 flex flex-col sm:flex-row gap-6 items-start sm:items-center hover:shadow-md transition-shadow"
-              >
-                <div className="w-20 h-20 rounded-full overflow-hidden shrink-0 relative bg-[var(--color-surface-container-high)] flex items-center justify-center text-lg font-bold text-[var(--color-primary)]">
-                  {doc.full_name.charAt(0)}
-                </div>
-                <div className="flex-grow">
-                  <h3 className="text-lg font-semibold text-[var(--color-foreground)]">
-                    {doc.full_name}
-                  </h3>
-                  <p className="text-sm text-[var(--color-on-surface-variant)]">
-                    {doc.specialty}
-                  </p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    <span className="text-sm font-semibold text-[var(--color-foreground)]">
-                      {doc.rating}
-                    </span>
-                    <span className="text-xs text-[var(--color-outline)]">
-                      ({doc.reviews_count} reviews)
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-2 sm:mt-0 w-full sm:w-auto">
-                  <a
-                    href="/patient/appointments"
-                    className="block w-full sm:w-auto text-center bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] transition-colors px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm"
-                  >
-                    Book Appointment
-                  </a>
-                </div>
-              </div>
-            ))}
-          </section>
+          <AvailableDoctors doctors={availableDoctors} />
 
           {/* Right Column: Upcoming & Quick Actions (30% on lg screens) */}
           <section className="lg:col-span-4 flex flex-col gap-6">

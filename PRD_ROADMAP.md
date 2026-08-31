@@ -2,7 +2,7 @@
 
 **Source:** Student MVP PRD (auth, onboarding, reports + AI, booking, live chat, doctor/admin dashboards)
 **Status legend:** `[ ]` pending · `[~]` in progress · `[x]` done
-**Last updated:** 2026-08-29
+**Last updated:** 2026-08-31
 
 ---
 
@@ -78,3 +78,28 @@ The project is **not** yet a fit for the full PRD. Solid foundations exist, but 
 - Recommended stack (per PRD): Next.js + Supabase + PostgreSQL + Realtime + Storage + Gemini 1.5 Flash. Fits the current project (already Next.js + Supabase).
 - AI summary is informational only — include non-medical-advice disclaimer.
 - Out of scope per PRD: video/audio, payments, prescriptions, email verification flow (confirm-email kept but out-of-scope optional), advanced scheduling.
+
+---
+
+## Post-roadmap follow-up (2026-08-31)
+
+All PRD steps were complete as of 2026-08-29. Subsequent refinements to the
+consultation flow (documented here so the roadmap reflects the current state):
+
+- **Consultations read from `appointments`.** Doctor/admin consultation history and
+  admin stats originally read the unused `consultations` table (which is never written),
+  so "consultation history" was empty. The RPCs `get_consultation_records`,
+  `admin_get_consultations`, and `admin_get_stats` now select from `public.appointments`
+  (joining `profiles`/`doctors`), filtered by `patient_id = auth.uid()` /
+  `doctor_id = auth.uid()` / `is_admin()`.
+- **Patient consultation hub.** `/patient/consultation` is no longer a static empty
+  state. A new `get_patient_active_appointments` RPC lists the patient's active/upcoming
+  consultations as a card grid with a "Join Chat" link; it falls back to the "No Active
+  Consultation" empty state only when there are none.
+- **Doctor "My Patients" is patient-centric.** `doctor/consultations` groups appointments
+  by patient (one card per patient with their latest visit + a "Talk" link) instead of
+  duplicating the appointment timeline. `get_doctor_appointments` was extended to return
+  `patient_id`. "Consultation History" keeps the full, searchable/filterable timeline.
+- **Consultation-history filters** use appointment statuses (Pending/Confirmed/Completed/
+  Cancelled); the dummy "Video Consult" type column/filter was removed (video is out of
+  PRD scope — the app is text-chat only), and pagination is now functional.

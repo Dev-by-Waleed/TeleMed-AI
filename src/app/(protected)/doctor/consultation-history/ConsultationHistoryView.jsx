@@ -1,27 +1,64 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import {
   Search,
   Filter,
   ChevronLeft,
   ChevronRight,
-  FileText
+  FileText,
+  Check,
+  X,
 } from 'lucide-react';
+
+const STATUS_OPTIONS = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
 
 export default function ConsultationHistoryView({ consultations }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const filterRef = useRef(null);
+
+  const PAGE_SIZE = 5;
+  const resetPage = () => setPage(1);
+
+  // Close the filter popover when clicking outside.
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (filterRef.current && !filterRef.current.contains(e.target)) {
+        setFilterOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const activeFilterCount = statusFilter ? 1 : 0;
 
   const filtered = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) return consultations;
-    return consultations.filter((c) =>
-      c.name.toLowerCase().includes(term) ||
-      c.id.toLowerCase().includes(term) ||
-      c.type.toLowerCase().includes(term) ||
-      c.status.toLowerCase().includes(term)
-    );
-  }, [consultations, searchTerm]);
+    return consultations.filter((c) => {
+      if (term &&
+        !c.name.toLowerCase().includes(term) &&
+        !c.id.toLowerCase().includes(term) &&
+        !c.status.toLowerCase().includes(term)) {
+        return false;
+      }
+      if (statusFilter && c.status !== statusFilter) return false;
+      return true;
+    });
+  }, [consultations, searchTerm, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+
+  const clearFilters = () => {
+    setStatusFilter(null);
+    resetPage();
+  };
 
   return (
     <main
@@ -50,7 +87,7 @@ export default function ConsultationHistoryView({ consultations }) {
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); resetPage(); }}
                 placeholder="Search history..."
                 className="w-full pl-9 pr-4 py-2 border rounded-lg focus:outline-none text-xs"
                 style={{
@@ -61,17 +98,76 @@ export default function ConsultationHistoryView({ consultations }) {
               />
             </div>
 
+          <div className="relative" ref={filterRef}>
             <button
+              type="button"
+              onClick={() => setFilterOpen((v) => !v)}
               className="flex items-center space-x-2 px-3.5 py-2 border rounded-lg transition-colors text-xs font-semibold shadow-sm hover:opacity-90"
               style={{
                 backgroundColor: 'var(--color-surface-card)',
-                borderColor: 'var(--color-outline-variant)',
-                color: 'var(--color-on-surface)',
+                borderColor: activeFilterCount > 0 ? 'var(--color-primary)' : 'var(--color-outline-variant)',
+                color: activeFilterCount > 0 ? 'var(--color-primary)' : 'var(--color-on-surface)',
               }}
             >
-              <Filter className="w-4 h-4" style={{ color: 'var(--color-outline)' }} />
+              <Filter className="w-4 h-4" style={{ color: activeFilterCount > 0 ? 'var(--color-primary)' : 'var(--color-outline)' }} />
               <span>Filter</span>
+              {activeFilterCount > 0 && (
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold"
+                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)' }}>
+                  {activeFilterCount}
+                </span>
+              )}
             </button>
+
+            {filterOpen && (
+              <div
+                className="absolute right-0 mt-2 w-64 rounded-xl border shadow-xl p-4 z-30"
+                style={{ backgroundColor: 'var(--color-surface-card)', borderColor: 'var(--color-outline-variant)' }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-on-surface-variant)' }}>
+                    Filters
+                  </span>
+                  <button type="button" onClick={() => setFilterOpen(false)} style={{ color: 'var(--color-on-surface-variant)' }}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <label className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-on-surface-variant)' }}>
+                  Status
+                </label>
+                <div className="flex flex-wrap gap-1.5 my-2">
+                  {STATUS_OPTIONS.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => { setStatusFilter(statusFilter === s ? null : s); resetPage(); }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors"
+                      style={
+                        statusFilter === s
+                          ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)' }
+                          : { backgroundColor: 'var(--color-surface-container-low)', color: 'var(--color-on-surface)', border: '1px solid var(--color-outline-variant)' }
+                      }
+                    >
+                      {statusFilter === s && <Check className="w-3 h-3" />}
+                      {s}
+                    </button>
+                  ))}
+                </div>
+
+                {activeFilterCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="w-full mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                    style={{ color: 'var(--color-primary)' }}
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           </div>
         </div>
 
@@ -100,9 +196,6 @@ export default function ConsultationHistoryView({ consultations }) {
                     Date & Time
                   </th>
                   <th className="px-6 py-3.5 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-on-surface-variant)' }}>
-                    Type
-                  </th>
-                  <th className="px-6 py-3.5 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--color-on-surface-variant)' }}>
                     Status
                   </th>
                   <th className="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-right" style={{ color: 'var(--color-on-surface-variant)' }}>
@@ -111,8 +204,7 @@ export default function ConsultationHistoryView({ consultations }) {
                 </tr>
               </thead>
               <tbody className="divide-y text-xs" style={{ borderColor: 'var(--color-outline-variant)' }}>
-                {filtered.map((item, index) => {
-                  const TypeIcon = item.typeIcon;
+                {pageItems.map((item, index) => {
                   return (
                     <tr key={index} className="transition-colors hover:bg-[var(--color-surface-container-low)]">
                       <td className="px-6 py-4">
@@ -142,12 +234,6 @@ export default function ConsultationHistoryView({ consultations }) {
                         <div className="text-[10px]" style={{ color: 'var(--color-on-surface-variant)' }}>{item.time}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2 font-medium" style={{ color: 'var(--color-on-surface)' }}>
-                          <TypeIcon className="w-4 h-4" style={{ color: 'var(--color-tertiary)' }} />
-                          <span>{item.type}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
                         <span
                           className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold"
                           style={{
@@ -173,10 +259,12 @@ export default function ConsultationHistoryView({ consultations }) {
                     </tr>
                   );
                 })}
-                {filtered.length === 0 && (
+                {pageItems.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
-                      No consultations match your search.
+                    <td colSpan={4} className="px-6 py-10 text-center text-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
+                      {activeFilterCount > 0 || searchTerm.trim()
+                        ? 'No consultations match your search or filters.'
+                        : 'No consultations yet.'}
                     </td>
                   </tr>
                 )}
@@ -193,45 +281,45 @@ export default function ConsultationHistoryView({ consultations }) {
             }}
           >
             <span className="text-xs" style={{ color: 'var(--color-on-surface-variant)' }}>
-              Showing {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
+              Showing {pageItems.length} of {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
             </span>
-            <div className="flex items-center space-x-1.5">
-              <button
-                disabled
-                className="p-1 rounded disabled:opacity-40"
-                style={{ color: 'var(--color-on-surface-variant)' }}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                className="w-7 h-7 rounded text-xs font-semibold flex items-center justify-center shadow-sm"
-                style={{
-                  backgroundColor: 'var(--color-primary)',
-                  color: 'var(--color-surface-card)',
-                }}
-              >
-                1
-              </button>
-              <button
-                className="w-7 h-7 rounded text-xs font-semibold flex items-center justify-center transition-colors hover:bg-[var(--color-surface-container-high)]"
-                style={{ color: 'var(--color-on-surface)' }}
-              >
-                2
-              </button>
-              <button
-                className="w-7 h-7 rounded text-xs font-semibold flex items-center justify-center transition-colors hover:bg-[var(--color-surface-container-high)]"
-                style={{ color: 'var(--color-on-surface)' }}
-              >
-                3
-              </button>
-              <span className="text-xs px-1" style={{ color: 'var(--color-on-surface-variant)' }}>...</span>
-              <button
-                className="p-1 rounded hover:bg-[var(--color-surface-container-high)]"
-                style={{ color: 'var(--color-on-surface-variant)' }}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center space-x-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage === 1}
+                  className="p-1 rounded disabled:opacity-40 hover:bg-[var(--color-surface-container-high)]"
+                  style={{ color: 'var(--color-on-surface-variant)' }}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setPage(n)}
+                    className="w-7 h-7 rounded text-xs font-semibold flex items-center justify-center transition-colors hover:bg-[var(--color-surface-container-high)]"
+                    style={
+                      n === safePage
+                        ? { backgroundColor: 'var(--color-primary)', color: 'var(--color-surface-card)', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }
+                        : { color: 'var(--color-on-surface)' }
+                    }
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage === totalPages}
+                  className="p-1 rounded disabled:opacity-40 hover:bg-[var(--color-surface-container-high)]"
+                  style={{ color: 'var(--color-on-surface-variant)' }}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

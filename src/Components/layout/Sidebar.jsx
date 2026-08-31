@@ -11,6 +11,7 @@ import {
   LogOut,
   Users,
 } from 'lucide-react'
+import NotificationBell from '@/Components/layout/NotificationBell'
 
 const NAV_CONFIG = [
   { label: 'Overview', path: '/doctor/dashboard', icon: LayoutDashboard },
@@ -37,6 +38,14 @@ export default function Sidebar({ userName = '', userEmail = '' }) {
     router.push('/login')
   }
 
+  // Consultation rooms are full-screen (patient profile + chat). Hide the
+  // app-nav sidebar there so it doesn't render as a second sidebar. This is
+  // decided client-side via usePathname so it updates instantly on navigation,
+  // unlike a server layout which is cached across client-side navigation.
+  if (pathname === '/doctor/consultation' || pathname.startsWith('/doctor/consultation/')) {
+    return null
+  }
+
   return (
     <aside
       className="hidden md:flex flex-col h-full w-64 border-r py-6 px-4 shrink-0 space-y-2"
@@ -57,13 +66,16 @@ export default function Sidebar({ userName = '', userEmail = '' }) {
         >
           {initials || 'Dr'}
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h2 className="text-lg font-bold leading-snug truncate" style={{ color: 'var(--color-primary)' }}>
             {displayName}
           </h2>
           <p className="text-xs truncate" style={{ color: 'var(--color-on-surface-variant)' }}>
             {userEmail || 'Doctor'}
           </p>
+        </div>
+        <div className="shrink-0">
+          <NotificationBell align="left" />
         </div>
       </div>
 

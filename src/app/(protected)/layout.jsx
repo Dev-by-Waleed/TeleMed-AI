@@ -21,7 +21,7 @@ export default async function ProtectedLayout({ children }) {
 
   return (
     <>
-      {hasTopNav && <Navbar role={role} userEmail={user?.email} />}
+      {hasTopNav && <Navbar key={role} role={role} userEmail={user?.email} />}
       <main className={hasTopNav ? 'pt-16' : ''}>{children}</main>
     </>
   );

@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server';
-import { Video, MessageSquare } from 'lucide-react';
 import ConsultationHistoryView from './ConsultationHistoryView';
 
 export const metadata = {
@@ -16,8 +15,6 @@ export default async function ConsultationHistory() {
     name: r.patient_name || r.doctor_name || 'Patient',
     date: new Date(r.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     time: new Date(r.scheduled_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-    type: r.type === 'video' ? 'Video Consult' : 'Secure Chat',
-    typeIcon: r.type === 'video' ? Video : MessageSquare,
     status: r.status[0].toUpperCase() + r.status.slice(1).replace('_', ' '),
   }))
 

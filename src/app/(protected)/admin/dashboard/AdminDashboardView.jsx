@@ -12,7 +12,8 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
-import { createDoctorAction, SPECIALTIES } from '@/actions/admin';
+import { createDoctorAction } from '@/actions/admin';
+import { SPECIALTIES } from '@/lib/specialties';
 
 const EMPTY = { text: '—' };
 
@@ -201,7 +202,7 @@ export default function AdminDashboardView({ stats, doctors = [], patients = [],
             {created ? (
               <SuccessMessage created={created} onClose={dismissCreate} />
             ) : (
-              <CreateDoctorForm onCancel={dismissCreate} />
+              <CreateDoctorForm onCancel={dismissCreate} onCreated={setCreated} />
             )}
           </div>
         </div>
@@ -210,8 +211,15 @@ export default function AdminDashboardView({ stats, doctors = [], patients = [],
   );
 }
 
-function CreateDoctorForm({ onCancel }) {
+function CreateDoctorForm({ onCancel, onCreated }) {
   const [state, formAction, isPending] = useActionState(createDoctorAction, null);
+
+  React.useEffect(() => {
+    if (state?.success) {
+      onCreated(state);
+    }
+  }, [state, onCreated]);
+
   return (
     <form action={formAction} className="space-y-4">
       {state?.error && <p role="alert" className="text-sm text-red-600 font-medium">{state.error}</p>}
@@ -286,8 +294,8 @@ function SuccessMessage({ created, onClose }) {
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm text-[var(--color-on-surface-variant)]">Invite link</p>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-[var(--color-on-surface)] break-all">{`${window.location.origin}/doctor/invite/${created.inviteToken}`}</span>
-              <CopyButton label="invite" value={`${window.location.origin}/doctor/invite/${created.inviteToken}`} />
+              <span className="text-sm font-medium text-[var(--color-on-surface)] break-all">{`${window.location.origin}/doctor-invite/${created.inviteToken}`}</span>
+              <CopyButton label="invite" value={`${window.location.origin}/doctor-invite/${created.inviteToken}`} />
             </div>
           </div>
         ) : (

@@ -82,6 +82,7 @@ export async function loadConsultationRoom(appointmentId) {
   return {
     ok: true,
     role,
+    appointmentId,
     currentUserId: user.id,
     currentUserName: user?.user_metadata?.full_name || user?.email || counterpartName,
     counterpartName,

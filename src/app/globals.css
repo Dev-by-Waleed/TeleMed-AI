@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  scroll-behavior: smooth;
+}
+
 @theme {
   /* --- Your Existing Base Theme (Preserved) --- */
   --color-background: #f9f9ff;
@@ -29,6 +33,28 @@
   --color-error: #ba1a1a;
   --color-error-container: #ffdad6;
   --color-on-error-container: #93000a;
+
+  /* --- Material state/container tokens (light) --- */
+  --color-primary-container: #d8e2ff;
+  --color-on-primary-container: #001945;
+  --color-on-primary: #ffffff;
+  --color-primary-fixed: #d8e2ff;
+  --color-on-primary-fixed: #001945;
+  --color-secondary-container: #dee0f9;
+  --color-on-secondary: #ffffff;
+  --color-secondary-fixed: #dee0f9;
+  --color-on-secondary-fixed: #1a1c37;
+  --color-tertiary-container-light: #c2e8fb;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-fixed: #c2e8fb;
+  --color-on-tertiary-fixed: #0e1e27;
+  --color-success: #1b873b;
+  --color-on-success: #ffffff;
+  --color-warning: #9a6700;
+  --color-on-warning: #ffffff;
+  --color-footer-bg: #0a1b3f;
+  --color-footer-fg: #dbe6ff;
+  --color-footer-heading: #ffffff;
 
   /* Fonts */
   --font-sans: var(--font-geist-sans), Inter, Arial, Helvetica, sans-serif;
@@ -69,6 +95,28 @@
     --color-error: #ffb4ab;
     --color-error-container: #93000a;
     --color-on-error-container: #ffdad6;
+
+    /* --- Material state/container tokens (dark) --- */
+    --color-primary-container: #1f4bb5;
+    --color-on-primary-container: #d8e2ff;
+    --color-on-primary: #ffffff;
+    --color-primary-fixed: #d8e2ff;
+    --color-on-primary-fixed: #001945;
+    --color-secondary-container: #30334d;
+    --color-on-secondary: #ffffff;
+    --color-secondary-fixed: #dee0f9;
+    --color-on-secondary-fixed: #1a1c37;
+    --color-tertiary-container-light: #0e1e27;
+    --color-on-tertiary: #ffffff;
+    --color-tertiary-fixed: #c2e8fb;
+    --color-on-tertiary-fixed: #0e1e27;
+    --color-success: #4cc37a;
+    --color-on-success: #ffffff;
+    --color-warning: #e0b54f;
+    --color-on-warning: #3b2d00;
+    --color-footer-bg: #0a1b3f;
+    --color-footer-fg: #dbe6ff;
+    --color-footer-heading: #ffffff;
   }
 }
 

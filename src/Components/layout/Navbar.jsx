@@ -3,21 +3,32 @@
 import React, { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Activity, Bell, User, LogOut, ChevronDown, Shield } from 'lucide-react'
+import { Activity, User, LogOut, ChevronDown, Shield } from 'lucide-react'
 import  createClient  from '@/lib/supabase/client'
+import NotificationBell from '@/Components/layout/NotificationBell'
 
 const NAV_CONFIG = {
+  public: [
+    { label: 'Home', path: '/' },
+    { label: 'Find Doctors', path: '/#doctors' },
+    { label: 'Departments', path: '/#departments' },
+    { label: 'About', path: '/about' }
+  ],
   patient: [
     { label: 'Dashboard', path: '/patient/dashboard' },
     { label: 'Medical Report', path: '/patient/reports' },
     { label: 'Consultation', path: '/patient/consultation' }
   ],
   admin: [
-    { label: 'Dashboard', path: '/admin/dashboard' }
+    { label: 'Dashboard', path: '/admin/dashboard' },
+    { label: 'Doctors', path: '/admin/doctors' },
+    { label: 'Patients', path: '/admin/patients' },
+    { label: 'Consultations', path: '/admin/consultations' },
+    { label: 'Reports', path: '/admin/reports' }
   ]
 }
 
-export default function Navbar({ role = 'patient', userEmail = '' }) {
+export default function Navbar({ role = 'patient', userEmail = '', variant = null }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -25,9 +36,10 @@ export default function Navbar({ role = 'patient', userEmail = '' }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
 
-  // Get nav items immediately based on passed prop
-  const navItems = NAV_CONFIG[role] || NAV_CONFIG.patient
-  const portalTitle = `TeleMed ${role.charAt(0).toUpperCase() + role.slice(1)} Portal`
+  // Landing/public mode shows marketing links and auth buttons instead of role links
+  const isPublic = variant === 'public'
+  const navItems = NAV_CONFIG[isPublic ? 'public' : role] || NAV_CONFIG.patient
+  const portalTitle = isPublic ? 'TeleMed AI' : `TeleMed ${role.charAt(0).toUpperCase() + role.slice(1)} Portal`
   const userInitials = userEmail ? userEmail.substring(0, 2).toUpperCase() : 'US'
 
   // Close dropdown when clicking outside
@@ -81,14 +93,28 @@ export default function Navbar({ role = 'patient', userEmail = '' }) {
         })}
       </div>
 
-      {/* Right Controls: Notifications & Profile Dropdown */}
-      <div className="flex items-center space-x-3">
-        <button className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] p-2 rounded-full transition-colors">
-          <Bell className="w-5 h-5" />
-        </button>
+        {/* Right Controls: Notifications & Profile Dropdown */}
+        <div className="flex items-center space-x-3">
+          {isPublic && (
+            <>
+              <Link
+                href="/login"
+                className="hidden sm:block px-4 py-2 text-sm font-semibold text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                className="px-4 py-2 rounded-lg bg-[var(--color-primary)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
+          {!isPublic && <NotificationBell />}
 
         {/* Profile Dropdown */}
-        <div className="relative" ref={dropdownRef}>
+        {!isPublic && <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((prev) => !prev)}
             className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-[var(--color-surface-variant)] transition-colors focus:outline-none"
@@ -131,7 +157,7 @@ export default function Navbar({ role = 'patient', userEmail = '' }) {
               </button>
             </div>
           )}
-        </div>
+        </div>}
       </div>
     </nav>
   )
