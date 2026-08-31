@@ -14,7 +14,7 @@ export default function ForgotPasswordForm() {
   const [resendError, setResendError] = useState(null)
   // Read the ?status=invalid_link flag once at mount (window is undefined
   // during SSR/prerender, so guard it).
-  const [invalidLink] = useState(() => {
+  const [invalidLink, setInvalidLink] = useState(() => {
     if (typeof window === "undefined") return false
     return new URLSearchParams(window.location.search).get("status") === "invalid_link"
   })
