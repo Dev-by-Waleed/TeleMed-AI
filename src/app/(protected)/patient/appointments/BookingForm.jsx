@@ -3,6 +3,7 @@
 import React, { useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, ArrowRight, CalendarDays, Clock, CheckCircle2 } from 'lucide-react';
+import createClient from '@/lib/supabase/client'
 import { bookAppointmentAction } from '@/actions/appointments';
 
 function nextNDays(n, startOffset = 1) {
@@ -15,15 +16,14 @@ function nextNDays(n, startOffset = 1) {
   return days;
 }
 
-function timeSlotsFor(date) {
+// Candidate hourly slots in the browser's local timezone, mirroring the old
+// client-side generation. The server filters these down to available ones.
+function candidateSlotsFor(date) {
   const slots = [];
   for (let h = 9; h <= 17; h++) {
     const d = new Date(date);
     d.setHours(h, 0, 0, 0);
-    // Skip past times for today
-    if (d.getTime() > Date.now()) {
-      slots.push(d);
-    }
+    slots.push(d.toISOString());
   }
   return slots;
 }
@@ -43,9 +43,36 @@ export default function BookingForm({ doctors }) {
   const [day, setDay] = React.useState(null);
   const [time, setTime] = React.useState(null);
   const [reason, setReason] = React.useState('');
+  const [availableSlots, setAvailableSlots] = React.useState([]);
+  const [loadedKey, setLoadedKey] = React.useState(null);
 
   const days = React.useMemo(() => nextNDays(7), []);
-  const slots = React.useMemo(() => (day ? timeSlotsFor(day) : []), [day]);
+
+  // Fetch the server-computed available slots whenever the doctor or day changes.
+  const dayKey = day ? day.toISOString().split('T')[0] : null;
+  const reqKey = doctorId && dayKey ? `${doctorId}|${dayKey}` : null;
+  const slotsLoading = !!reqKey && loadedKey !== reqKey;
+
+  useEffect(() => {
+    if (!reqKey) return;
+    let alive = true;
+
+    const supabase = createClient();
+    const p_slots = candidateSlotsFor(day);
+
+    supabase
+      .rpc('get_available_slots', { p_doctor_id: doctorId, p_slots })
+      .then(({ data }) => {
+        if (alive) {
+          setAvailableSlots((data || []).map((r) => new Date(r.slot).getTime()));
+          setLoadedKey(reqKey);
+        }
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [reqKey, doctorId, day]);
 
   useEffect(() => {
     if (state?.success) {
@@ -94,7 +121,7 @@ export default function BookingForm({ doctors }) {
                     name="doctorId"
                     value={doc.id}
                     checked={doctorId === doc.id}
-                    onChange={() => setDoctorId(doc.id)}
+                    onChange={() => { setDoctorId(doc.id); setTime(null); setAvailableSlots([]); }}
                     className="accent-[var(--color-primary)]"
                   />
                   <div className="flex-1">
@@ -121,7 +148,7 @@ export default function BookingForm({ doctors }) {
                   <button
                     type="button"
                     key={iso}
-                    onClick={() => { setDay(d); setTime(null); }}
+                    onClick={() => { setDay(d); setTime(null); setAvailableSlots([]); }}
                     className={`rounded-lg border p-2 text-center transition-colors ${
                       isSel
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
@@ -143,26 +170,31 @@ export default function BookingForm({ doctors }) {
             <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--color-on-surface-variant)] mb-3 flex items-center gap-2">
               <Clock className="w-4 h-4" /> 3. Select a Time
             </h2>
-            {slots.length === 0 ? (
+            {slotsLoading ? (
+              <p className="text-xs text-[var(--color-on-surface-variant)] flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Checking availability...
+              </p>
+            ) : availableSlots.length === 0 ? (
               <p className="text-xs text-[var(--color-on-surface-variant)]">
-                {day ? 'No time slots available for this day.' : 'Please select a day first.'}
+                {day ? 'No time slots available for this day.' : 'Please select a doctor and a day first.'}
               </p>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {slots.map((s) => {
-                  const isSel = time && new Date(time).getTime() === s.getTime();
+                {availableSlots.map((ts) => {
+                  const isSel = time && new Date(time).getTime() === ts;
                   return (
                     <button
                       type="button"
-                      key={s.getTime()}
-                      onClick={() => setTime(s.toISOString())}
+                      key={ts}
+                      onClick={() => setTime(new Date(ts).toISOString())}
                       className={`rounded-lg border px-2 py-2 text-xs font-semibold transition-colors ${
                         isSel
                           ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
                           : 'border-[var(--color-outline-variant)] text-[var(--color-on-surface)] hover:border-[var(--color-primary)]/50'
                       }`}
                     >
-                      {fmtTime(s)}
+                      {fmtTime(new Date(ts))}
                     </button>
                   );
                 })}

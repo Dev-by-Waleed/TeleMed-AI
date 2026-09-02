@@ -9,6 +9,13 @@ export default async function DoctorLayout({ children }) {
   const fullName = user?.user_metadata?.full_name || user?.email || ''
   const userEmail = user?.email || ''
 
+  const { data: profileRow } = await supabase
+    .from('profiles')
+    .select('avatar_url')
+    .eq('id', user?.id)
+    .maybeSingle()
+  const avatarUrl = profileRow?.avatar_url || null
+
   return (
     <div
       className="h-screen flex font-sans overflow-hidden antialiased"
@@ -18,7 +25,7 @@ export default async function DoctorLayout({ children }) {
         fontFamily: 'var(--font-sans)',
       }}
     >
-      <Sidebar userEmail={userEmail} userName={fullName} />
+      <Sidebar userEmail={userEmail} userName={fullName} avatarUrl={avatarUrl} />
       {children}
     </div>
   )

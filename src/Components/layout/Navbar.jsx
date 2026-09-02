@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Activity, User, LogOut, ChevronDown, Shield } from 'lucide-react'
 import  createClient  from '@/lib/supabase/client'
+import Image from 'next/image'
 import NotificationBell from '@/Components/layout/NotificationBell'
 
 const NAV_CONFIG = {
@@ -16,19 +17,14 @@ const NAV_CONFIG = {
   ],
   patient: [
     { label: 'Dashboard', path: '/patient/dashboard' },
+    { label: 'Appointments', path: '/patient/my-appointments' },
+    { label: 'Medications', path: '/patient/prescriptions' },
     { label: 'Medical Report', path: '/patient/reports' },
     { label: 'Consultation', path: '/patient/consultation' }
-  ],
-  admin: [
-    { label: 'Dashboard', path: '/admin/dashboard' },
-    { label: 'Doctors', path: '/admin/doctors' },
-    { label: 'Patients', path: '/admin/patients' },
-    { label: 'Consultations', path: '/admin/consultations' },
-    { label: 'Reports', path: '/admin/reports' }
   ]
 }
 
-export default function Navbar({ role = 'patient', userEmail = '', variant = null }) {
+export default function Navbar({ role = 'patient', userEmail = '', variant = null, avatarUrl = null }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -119,9 +115,13 @@ export default function Navbar({ role = 'patient', userEmail = '', variant = nul
             onClick={() => setDropdownOpen((prev) => !prev)}
             className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-[var(--color-surface-variant)] transition-colors focus:outline-none"
           >
-            <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] text-white text-xs font-bold flex items-center justify-center">
-              {userInitials}
-            </div>
+            {avatarUrl ? (
+              <Image src={avatarUrl} alt="Profile" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] text-white text-xs font-bold flex items-center justify-center">
+                {userInitials}
+              </div>
+            )}
             <ChevronDown className={`w-4 h-4 text-[var(--color-on-surface-variant)] transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 

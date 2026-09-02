@@ -14,14 +14,24 @@ export default async function ProtectedLayout({ children }) {
   const user = await getUser(supabase)
   const role = await getUserRole(supabase, user?.id)
 
-  // The doctor portal uses its own vertical Sidebar (rendered in the doctor
-  // layout), so it shouldn't also render the top Navbar. Patient and admin
-  // portals get the shared top navigation.
-  const hasTopNav = role !== 'doctor'
+  // Fetch the profile picture (if set) so the top navbar can show it.
+  let avatarUrl = null
+  if (user?.id && role !== 'doctor') {
+    const { data: profileRow } = await supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', user.id)
+      .maybeSingle()
+    avatarUrl = profileRow?.avatar_url || null
+  }
+
+  // The doctor and admin portals use their own vertical Sidebars (rendered in
+  // their layouts), so only the patient portal gets the shared top navigation.
+  const hasTopNav = role === 'patient'
 
   return (
     <>
-      {hasTopNav && <Navbar key={role} role={role} userEmail={user?.email} />}
+      {hasTopNav && <Navbar key={role} role={role} userEmail={user?.email} avatarUrl={avatarUrl} />}
       <main className={hasTopNav ? 'pt-16' : ''}>{children}</main>
     </>
   );

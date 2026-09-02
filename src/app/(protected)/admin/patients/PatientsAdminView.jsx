@@ -125,12 +125,34 @@ function ProfileDrawer({ patient, onClose }) {
 
 export default function PatientsAdminView({ patients = [] }) {
   const [selected, setSelected] = useState(null);
+  const [showIncomplete, setShowIncomplete] = useState(false);
+
+  const incomplete = patients.filter((p) => !p.completed_onboarding);
+  const visible = showIncomplete ? incomplete : patients;
 
   return (
     <div className="p-6 md:p-10 max-w-[1440px] mx-auto w-full">
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-semibold text-[var(--color-foreground)] mb-1">Manage Patients</h1>
-        <p className="text-base text-[var(--color-on-surface-variant)]">Suspend, reactivate, or review patient medical profiles.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-semibold text-[var(--color-foreground)] mb-1">Manage Patients</h1>
+          <p className="text-base text-[var(--color-on-surface-variant)]">Suspend, reactivate, or review patient medical profiles.</p>
+        </div>
+        <div className="flex items-center gap-4">
+          {incomplete.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowIncomplete((v) => !v)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-colors ${
+                showIncomplete
+                  ? 'bg-[#b45309] text-white'
+                  : 'bg-[#fef3c7] text-[#b45309] hover:bg-[#fde68a]'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              {showIncomplete ? 'Showing: Incomplete onboarding' : `${incomplete.length} haven't completed onboarding`}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl overflow-hidden">
@@ -142,15 +164,15 @@ export default function PatientsAdminView({ patients = [] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-outline-variant)]">
-              {patients.length === 0 && (
+              {visible.length === 0 && (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center">
                     <Users className="w-8 h-8 text-[var(--color-on-surface-variant)] mx-auto mb-3" />
-                    <p className="text-sm text-[var(--color-on-surface-variant)]">No patients yet.</p>
+                    <p className="text-sm text-[var(--color-on-surface-variant)]">{showIncomplete ? 'Every patient has completed onboarding.' : 'No patients yet.'}</p>
                   </td>
                 </tr>
               )}
-              {patients.map((p) => (
+              {visible.map((p) => (
                 <tr key={p.id} className="hover:bg-[var(--color-secondary)]/40">
                   <Td>{p.full_name}</Td>
                   <Td>{p.email}</Td>

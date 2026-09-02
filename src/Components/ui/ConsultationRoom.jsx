@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import createClient from '@/lib/supabase/client';
+import { completeAppointmentAction } from '@/actions/doctor-appointments';
+import { createPrescriptionAction } from '@/actions/doctor-prescriptions';
 import {
   Send,
   Loader2,
@@ -12,7 +15,11 @@ import {
   User,
   HeartPulse,
   AlertTriangle,
+  CheckCircle2,
+  Plus,
+  X,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 export default function ConsultationRoom({
   appointmentId,
@@ -21,14 +28,30 @@ export default function ConsultationRoom({
   counterpartName,
   doctorSpecialty,
   role,
+  isDoctor,
   reason,
+  status,
+  patientId,
   initialMessages = [],
   context,
 }) {
+  const router = useRouter();
   const [messages, setMessages] = useState(initialMessages);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [presence, setPresence] = useState({ doctor: false, patient: false });
+  const [completing, setCompleting] = useState(false);
+  const [roomStatus, setRoomStatus] = useState(status);
+  const [completeMsg, setCompleteMsg] = useState('');
+  const [prescribing, setPrescribing] = useState(false);
+  const [prescribeOpen, setPrescribeOpen] = useState(false);
+  const [rxForm, setRxForm] = useState({
+    medicationName: '',
+    dosage: '',
+    frequency: '',
+    instructions: '',
+  });
+  const [rxMsg, setRxMsg] = useState('');
   const listRef = useRef(null);
 
   const supabase = createClient();
@@ -136,6 +159,45 @@ export default function ConsultationRoom({
   if (presence.patient) statusChips.push({ side: 'patient', label: 'Patient joined' });
   const inProgress = presence.doctor && presence.patient;
 
+  const doctorCanComplete = isDoctor && roomStatus === 'confirmed';
+
+  async function handleComplete() {
+    if (completing) return;
+    setCompleting(true);
+    setCompleteMsg('');
+    const formData = new FormData();
+    formData.set('appointmentId', appointmentId);
+    const result = await completeAppointmentAction(null, formData);
+    setCompleting(false);
+    if (result?.success) {
+      setRoomStatus('completed');
+      setCompleteMsg('Consultation marked as completed.');
+      router.refresh();
+    } else {
+      setCompleteMsg(result?.error || 'Could not complete the consultation.');
+    }
+  }
+
+  async function handlePrescribe(e) {
+    e.preventDefault();
+    if (prescribing) return;
+    setPrescribing(true);
+    setRxMsg('');
+    const fd = new FormData();
+    fd.set('patientId', patientId);
+    Object.entries(rxForm).forEach(([k, v]) => fd.set(k, v));
+    const result = await createPrescriptionAction(null, fd);
+    setPrescribing(false);
+    if (result?.error) {
+      setRxMsg(result.error);
+    } else {
+      setRxForm({ medicationName: '', dosage: '', frequency: '', instructions: '' });
+      setRxMsg('Prescription saved.');
+      setPrescribeOpen(false);
+      router.refresh();
+    }
+  }
+
   return (
     <div className="flex flex-col lg:flex-row w-full min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)]">
       {/* Left: Patient context panel */}
@@ -153,6 +215,21 @@ export default function ConsultationRoom({
             </p>
           </div>
         </div>
+
+        {isDoctor && (
+          <button
+            type="button"
+            onClick={() => {
+              setPrescribeOpen(true);
+              setRxMsg('');
+            }}
+            className="w-full mb-5 inline-flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg text-white hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            <Plus className="w-4 h-4" />
+            Prescribe
+          </button>
+        )}
 
         <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--color-on-surface-variant)] mb-3 flex items-center gap-1.5">
           <HeartPulse className="w-4 h-4" /> Patient Profile
@@ -205,9 +282,9 @@ export default function ConsultationRoom({
                       {r.status === 'analyzed' ? 'AI summary available' : r.status}
                     </p>
                     {r.ai_summary && (
-                      <p className="text-[11px] text-[var(--color-on-surface)] mt-1">
-                        {r.ai_summary}
-                      </p>
+                      <div className="text-[11px] text-[var(--color-on-surface)] mt-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:font-semibold">
+                        <ReactMarkdown>{r.ai_summary}</ReactMarkdown>
+                      </div>
                     )}
                   </li>
                 ))}
@@ -230,6 +307,38 @@ export default function ConsultationRoom({
             {inProgress ? 'Consultation in progress' : 'Waiting for other party'}
           </span>
         </header>
+
+        {doctorCanComplete && (
+          <div className="px-6 py-2 flex items-center gap-3 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface-bright)]">
+            <span className="text-xs flex-1" style={{ color: 'var(--color-on-surface-variant)' }}>
+              Consultation confirmed — mark it complete when the visit ends.
+            </span>
+            <button
+              type="button"
+              disabled={completing}
+              onClick={handleComplete}
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+                completeMsg && roomStatus === 'completed'
+                  ? 'text-emerald-700 bg-emerald-100'
+                  : 'text-white hover:opacity-90'
+              }`}
+              style={completeMsg && roomStatus === 'completed' ? undefined : { backgroundColor: 'var(--color-primary)' }}
+            >
+              {completing ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              {roomStatus === 'completed' ? 'Completed' : 'Complete Consultation'}
+            </button>
+          </div>
+        )}
+
+        {completeMsg && roomStatus === 'completed' && (
+          <div className="px-6 py-1.5 text-xs text-emerald-700 bg-emerald-50 border-b border-emerald-100">
+            {completeMsg}
+          </div>
+        )}
 
         {(statusChips.length > 0) && (
           <div className="px-6 py-2 flex flex-wrap items-center gap-2 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface-bright)]">
@@ -292,6 +401,95 @@ export default function ConsultationRoom({
           </button>
         </form>
       </div>
+
+      {prescribeOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setPrescribeOpen(false)}>
+          <div
+            className="w-full max-w-md rounded-xl p-6 shadow-xl"
+            style={{ backgroundColor: 'var(--color-surface-card)', border: '1px solid var(--color-outline-variant)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-on-surface)' }}>
+                <Pill className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
+                New Prescription
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPrescribeOpen(false)}
+                className="hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--color-on-surface-variant)' }}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePrescribe} className="space-y-3">
+              <label className="block">
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>Patient</span>
+                <p className="text-sm font-medium mt-0.5" style={{ color: 'var(--color-on-surface)' }}>{counterpartName}</p>
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>Medication</span>
+                <input
+                  type="text"
+                  required
+                  value={rxForm.medicationName}
+                  onChange={(e) => setRxForm((f) => ({ ...f, medicationName: e.target.value }))}
+                  placeholder="e.g. Amoxicillin"
+                  className="mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--color-primary)] transition-colors text-[var(--color-on-surface)]"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>Dosage</span>
+                  <input
+                    type="text"
+                    required
+                    value={rxForm.dosage}
+                    onChange={(e) => setRxForm((f) => ({ ...f, dosage: e.target.value }))}
+                    placeholder="500 mg"
+                    className="mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--color-primary)] transition-colors text-[var(--color-on-surface)]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>Frequency</span>
+                  <input
+                    type="text"
+                    required
+                    value={rxForm.frequency}
+                    onChange={(e) => setRxForm((f) => ({ ...f, frequency: e.target.value }))}
+                    placeholder="twice daily"
+                    className="mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--color-primary)] transition-colors text-[var(--color-on-surface)]"
+                  />
+                </label>
+              </div>
+              <label className="block">
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-on-surface-variant)' }}>Instructions (optional)</span>
+                <textarea
+                  value={rxForm.instructions}
+                  onChange={(e) => setRxForm((f) => ({ ...f, instructions: e.target.value }))}
+                  rows={2}
+                  placeholder="Take with food"
+                  className="mt-1 w-full bg-[var(--color-surface)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-sm outline-none focus:border-[var(--color-primary)] transition-colors text-[var(--color-on-surface)] resize-none"
+                />
+              </label>
+
+              {rxMsg && <p className="text-xs font-medium" style={{ color: 'var(--color-primary-dark)' }}>{rxMsg}</p>}
+
+              <button
+                type="submit"
+                disabled={prescribing}
+                className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity px-4 py-2 rounded-lg disabled:opacity-50"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                {prescribing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pill className="w-4 h-4" />}
+                Save Prescription
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

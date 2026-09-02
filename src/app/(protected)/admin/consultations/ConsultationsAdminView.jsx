@@ -80,8 +80,8 @@ export default function ConsultationsAdminView({ consultations = [] }) {
       </div>
 
       {selected?.summary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelected(null)}>
-          <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl max-w-lg w-full p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto" onClick={() => setSelected(null)}>
+          <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl max-w-lg w-full p-6 shadow-xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-[var(--color-foreground)]">Consultation Summary</h2>
               <button type="button" onClick={() => setSelected(null)} className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-foreground)]">

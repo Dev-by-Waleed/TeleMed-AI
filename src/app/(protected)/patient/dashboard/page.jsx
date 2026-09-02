@@ -7,7 +7,21 @@ import {
   Video,
   Pill,
   FileText,
+  CalendarDays,
+  Bell,
+  Stethoscope,
+  ChevronRight,
 } from 'lucide-react';
+
+function fmtTime(iso) {
+  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+function fmtEnd(iso, min) {
+  return new Date(new Date(iso).getTime() + min * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+}
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
 
 export default async function PatientDashboard() {
   const supabase = await createClient()
@@ -27,18 +41,58 @@ export default async function PatientDashboard() {
   const { data: nextResult = [] } = await supabase.rpc('get_patient_next_appointment')
   const nextAppointment = nextResult[0] || null
 
-  function fmtTime(iso) {
-    return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  // Overview stats
+  const { data: activeAppointments } = await supabase.rpc('get_patient_active_appointments')
+  const { data: activeMeds } = await supabase
+    .from('prescriptions')
+    .select('id')
+    .eq('patient_id', user.id)
+    .eq('status', 'active')
+  const { data: reports } = await supabase
+    .from('reports')
+    .select('id')
+    .eq('patient_id', user.id)
+  const { data: unread } = await supabase
+    .from('notifications')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('is_read', false)
+
+  // Latest completed consultation that has a doctor-written summary.
+  const { data: latestSummary = [] } = await supabase
+    .from('appointments')
+    .select('id, doctor_id, scheduled_at, consultation_notes')
+    .eq('patient_id', user.id)
+    .eq('status', 'completed')
+    .not('consultation_notes', 'is', null)
+    .order('scheduled_at', { ascending: false })
+    .limit(1)
+  const latest = (latestSummary || [])[0] || null
+  let latestDoctorName = 'Your doctor'
+  if (latest) {
+    const { data: doc = [] } = await supabase
+      .from('doctors')
+      .select('full_name')
+      .eq('id', latest.doctor_id)
+      .limit(1)
+    if (doc[0]?.full_name) latestDoctorName = doc[0].full_name
   }
-  function fmtEnd(iso, min) {
-    return new Date(new Date(iso).getTime() + min * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-  }
+
+  const stats = [
+    { label: 'Upcoming', value: (activeAppointments || []).length, href: '/patient/my-appointments', icon: CalendarDays },
+    { label: 'Active Medications', value: (activeMeds || []).length, href: '/patient/prescriptions', icon: Pill },
+    { label: 'Medical Reports', value: (reports || []).length, href: '/patient/reports', icon: FileText },
+    { label: 'Unread Notifications', value: (unread || []).length, href: '/patient/dashboard', icon: Bell },
+  ]
+
+  // Doctors the patient already has a pending/confirmed appointment with, so
+  // their cards can surface a "Booked" state instead of a plain book button.
+  const bookedDoctorIds = new Set((activeAppointments || []).map((a) => a.doctor_id))
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)] font-sans antialiased">
-      {/* Main Container */}
-      <main className="p-12 px-4 md:px-10 max-w-[1440px] mx-auto min-h-screen">
-        {/* Welcome Section */}
+      <main className="p-10 px-4 md:px-10 max-w-[1440px] mx-auto min-h-screen">
+        {/* Welcome */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-semibold text-[var(--color-foreground)] mb-1">
             Welcome back, {firstName}
@@ -48,11 +102,34 @@ export default async function PatientDashboard() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Available Doctors (70% on lg screens) */}
-          <AvailableDoctors doctors={availableDoctors} />
+        {/* Overview stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {stats.map(({ label, value, href, icon: Icon }) => (
+            <a
+              key={label}
+              href={href}
+              className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-5 flex items-center gap-4 hover:shadow-md transition-shadow group"
+            >
+              <div className="w-11 h-11 rounded-full bg-[var(--color-secondary)] group-hover:bg-[var(--color-primary-fixed-dim)] transition-colors flex items-center justify-center shrink-0">
+                <Icon className="w-5 h-5 text-[var(--color-primary)]" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-bold text-[var(--color-foreground)] leading-none">
+                  {value}
+                </p>
+                <p className="text-xs text-[var(--color-on-surface-variant)] mt-1 truncate">
+                  {label}
+                </p>
+              </div>
+            </a>
+          ))}
+        </div>
 
-          {/* Right Column: Upcoming & Quick Actions (30% on lg screens) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Available Doctors */}
+          <AvailableDoctors doctors={availableDoctors} bookedDoctorIds={bookedDoctorIds} />
+
+          {/* Right Column: Upcoming + Latest summary */}
           <section className="lg:col-span-4 flex flex-col gap-6">
             <h2 className="text-xl font-semibold text-[var(--color-foreground)]">
               Upcoming
@@ -61,12 +138,18 @@ export default async function PatientDashboard() {
             {/* Next Appointment Card */}
             <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6 flex flex-col gap-4 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1.5 h-full bg-[var(--color-tertiary)]" />
-              
+
               <div className="pl-2">
                 <div className="flex justify-between items-start mb-3">
                   <span className="bg-[var(--color-secondary)] text-[var(--color-foreground)] px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider">
                     {nextAppointment ? (new Date(nextAppointment.scheduled_at).toDateString() === new Date().toDateString() ? 'Today' : 'Upcoming') : 'No Upcoming'}
                   </span>
+                  <a
+                    href="/patient/my-appointments"
+                    className="text-xs font-semibold text-[var(--color-primary)] hover:underline"
+                  >
+                    View all
+                  </a>
                 </div>
 
                 {nextAppointment ? (
@@ -104,35 +187,42 @@ export default async function PatientDashboard() {
               </div>
             </div>
 
-            {/* Quick Actions Card */}
-            <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6 flex flex-col gap-4">
-              <h3 className="text-base font-semibold text-[var(--color-foreground)] border-b border-[var(--color-outline-variant)] pb-3">
-                Quick Actions
-              </h3>
-              <ul className="flex flex-col gap-3">
-                <li>
+            {/* Latest consultation summary */}
+            <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold text-[var(--color-foreground)] flex items-center gap-2">
+                  <Stethoscope className="w-4 h-4 text-[var(--color-primary)]" />
+                  Latest Summary
+                </h3>
+                <a
+                  href="/patient/my-appointments"
+                  className="text-xs font-semibold text-[var(--color-primary)] hover:underline"
+                >
+                  History
+                </a>
+              </div>
+
+              {latest ? (
+                <>
+                  <p className="text-xs text-[var(--color-on-surface-variant)]">
+                    {latestDoctorName} &middot; {fmtDate(latest.scheduled_at)}
+                  </p>
+                  <p className="text-sm text-[var(--color-on-surface)] line-clamp-4 whitespace-pre-line">
+                    {latest.consultation_notes}
+                  </p>
                   <a
-                    href="#"
-                    className="flex items-center gap-3 text-[var(--color-foreground)] hover:text-[var(--color-primary)] transition-colors group"
+                    href="/patient/my-appointments"
+                    className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-primary)] hover:underline self-start"
                   >
-                    <div className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center group-hover:bg-[var(--color-primary-fixed-dim)] transition-colors">
-                      <Pill className="w-4 h-4 text-[var(--color-primary)]" />
-                    </div>
-                    <span className="text-sm font-medium">Request Refill</span>
+                    Read in Appointments
+                    <ChevronRight className="w-3 h-3" />
                   </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="flex items-center gap-3 text-[var(--color-foreground)] hover:text-[var(--color-primary)] transition-colors group"
-                  >
-                    <div className="w-9 h-9 rounded-full bg-[var(--color-secondary)] flex items-center justify-center group-hover:bg-[var(--color-primary-fixed-dim)] transition-colors">
-                      <FileText className="w-4 h-4 text-[var(--color-primary)]" />
-                    </div>
-                    <span className="text-sm font-medium">View Lab Results</span>
-                  </a>
-                </li>
-              </ul>
+                </>
+              ) : (
+                <p className="text-sm text-[var(--color-on-surface-variant)]">
+                  No consultation summaries yet. They appear here after completed visits.
+                </p>
+              )}
             </div>
           </section>
         </div>

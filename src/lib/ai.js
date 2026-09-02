@@ -1,11 +1,15 @@
-const MODEL = "gemini-1.5-flash"
+const MODEL = "gemini-2.5-flash"
 
 const PROMPT =
   "Act as a medical assistant. Explain this medical report in simple, easy-to-understand " +
   "language for a patient. Avoid complex terminology and summarize key findings, possible " +
   "concerns, and general meaning."
 
-// Sends a document (PDF bytes) to Gemini 1.5 Flash for a patient-friendly summary.
+// Time limit for the Gemini request. Without this the fetch could hang forever,
+// leaving the report stuck in "processing" and the UI never showing an error.
+const AI_TIMEOUT_MS = 60000
+
+// Sends a document (PDF bytes) to Gemini for a patient-friendly summary.
 // Returns { ok: true, summary } or { ok: false, error }.
 export async function summarizeDocument(fileBase64) {
   const apiKey = process.env.GEMINI_API_KEY
@@ -35,9 +39,13 @@ export async function summarizeDocument(fileBase64) {
             },
           ],
         }),
+        signal: AbortSignal.timeout(AI_TIMEOUT_MS),
       }
     )
   } catch (err) {
+    if (err?.name === "TimeoutError") {
+      return { ok: false, error: "AI request timed out. Please retry." }
+    }
     return { ok: false, error: "AI request failed: " + err.message }
   }
 

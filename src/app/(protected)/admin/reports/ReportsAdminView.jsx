@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import { FileText, X, Download } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 function statusPill(value) {
   const colors = {
     uploaded: { color: '#b45309', bg: '#fef3c7' },
     analyzed: { color: '#047857', bg: '#d1fae5' },
+    failed: { color: '#b91c1c', bg: '#fee2e2' },
   };
   const c = colors[value] || { color: 'var(--color-on-surface-variant)', bg: 'var(--color-surface-container-low)' };
   return (
@@ -75,8 +77,8 @@ export default function ReportsAdminView({ reports = [] }) {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelected(null)}>
-          <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl max-w-lg w-full p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto" onClick={() => setSelected(null)}>
+          <div className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl max-w-lg w-full p-6 shadow-xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-[var(--color-foreground)]">{selected.title}</h2>
               <button type="button" onClick={() => setSelected(null)} className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-foreground)]">
@@ -98,9 +100,9 @@ export default function ReportsAdminView({ reports = [] }) {
               )}
             </div>
             {selected.ai_summary ? (
-              <p className="text-sm text-[var(--color-on-surface)] whitespace-pre-wrap bg-[var(--color-surface)] border border-[var(--color-outline-variant)] rounded-lg p-4">
-                {selected.ai_summary}
-              </p>
+              <div className="text-sm text-[var(--color-on-surface)] whitespace-pre-wrap bg-[var(--color-surface)] border border-[var(--color-outline-variant)] rounded-lg p-4 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2 [&_li]:mb-1 [&_strong]:font-semibold [&_h1]:text-base [&_h2]:text-base [&_h3]:text-sm [&_h1]:font-semibold [&_h2]:font-semibold [&_h3]:font-semibold [&_h1,_h2,_h3]:mt-2 [&_h1,_h2,_h3]:mb-1 [&_p]:mb-2">
+                <ReactMarkdown>{selected.ai_summary}</ReactMarkdown>
+              </div>
             ) : (
               <p className="text-sm text-[var(--color-on-surface-variant)]">AI analysis pending.</p>
             )}

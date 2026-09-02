@@ -1,4 +1,5 @@
 "use server"
+import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import createAdminClient from "@/lib/supabase/admin"
 import { getUser, getUserRole } from "@/lib/supabase/profile"
@@ -198,5 +199,184 @@ export async function getPatientProfileAction(prevState, formData) {
 
   if (!data) return { error: "This patient hasn't completed onboarding." }
   return { success: true, profile: data }
+}
+
+async function requireAdmin() {
+  const supabase = await createClient()
+  const user = await getUser(supabase)
+  if (!user) {
+    return { supabase: null, user: null, error: "You must be signed in." }
+  }
+  const role = await getUserRole(supabase, user.id)
+  if (role !== "admin") {
+    return { supabase: null, user: null, error: "Only admins can perform this action." }
+  }
+  return { supabase, user, error: null }
+}
+
+// Approve or deny a patient's refill request. Clears the pending flag so the
+// patient can request again later, and notifies the patient of the outcome.
+export async function resolveRefillAction(prevState, formData) {
+  const { supabase, error: guardError } = await requireAdmin()
+  if (guardError) return { error: guardError }
+
+  const prescriptionId = String(formData.get("prescription_id") || "")
+  const decision = String(formData.get("decision") || "")
+  if (!prescriptionId) return { error: "Missing prescription." }
+  if (decision !== "approved" && decision !== "denied") return { error: "Invalid decision." }
+
+  const { data: rx } = await supabase
+    .from("prescriptions")
+    .select("id, patient_id, medication_name, status, refill_requested")
+    .eq("id", prescriptionId)
+    .maybeSingle()
+
+  if (!rx) return { error: "Prescription not found." }
+  if (rx.status !== "active") return { error: "Only active prescriptions can have refills resolved." }
+  if (!rx.refill_requested) return { error: "There is no pending refill request for this prescription." }
+
+  const { error: updateErr } = await supabase
+    .from("prescriptions")
+    .update({ refill_requested: false })
+    .eq("id", prescriptionId)
+  if (updateErr) {
+    console.error("resolveRefill update failed:", updateErr.message)
+    return { error: "We couldn't update the refill request. Please try again." }
+  }
+
+  const approved = decision === "approved"
+  const { error: notifErr } = await supabase.from("notifications").insert({
+    user_id: rx.patient_id,
+    type: "appointment",
+    title: approved ? "Refill approved" : "Refill request declined",
+    body: approved
+      ? `Your refill for ${rx.medication_name} was approved.`
+      : `Your refill request for ${rx.medication_name} was declined. Contact your doctor for details.`,
+    link: "/patient/prescriptions",
+  })
+  if (notifErr) {
+    console.error("resolveRefill notification failed:", notifErr.message)
+  }
+
+  revalidatePath("/admin/prescriptions")
+  revalidatePath("/admin/dashboard")
+  return { success: true, decision: approved ? "approved" : "denied" }
+}
+
+// Remove a patient review. The reviews trigger recomputes the doctor's
+// aggregate rating and review count afterward.
+export async function deleteReviewAction(prevState, formData) {
+  const { supabase, error: guardError } = await requireAdmin()
+  if (guardError) return { error: guardError }
+
+  const reviewId = String(formData.get("review_id") || "")
+  if (!reviewId) return { error: "Missing review." }
+
+  const { data: existing } = await supabase
+    .from("reviews")
+    .select("id")
+    .eq("id", reviewId)
+    .maybeSingle()
+  if (!existing) return { error: "Review not found." }
+
+  const { error } = await supabase.from("reviews").delete().eq("id", reviewId)
+  if (error) {
+    console.error("deleteReview failed:", error.message)
+    return { error: "We couldn't remove the review. Please try again." }
+  }
+
+  revalidatePath("/admin/reviews")
+  return { success: true }
+}
+
+// Remove a chat message (moderation). The "Admins manage messages" RLS policy
+// scopes the delete; the row is gone from both sides of the consultation.
+export async function deleteMessageAction(prevState, formData) {
+  const { supabase, error: guardError } = await requireAdmin()
+  if (guardError) return { error: guardError }
+
+  const messageId = String(formData.get("message_id") || "")
+  if (!messageId) return { error: "Missing message." }
+
+  const { data: existing } = await supabase
+    .from("messages")
+    .select("id")
+    .eq("id", messageId)
+    .maybeSingle()
+  if (!existing) return { error: "Message not found." }
+
+  const { error } = await supabase.from("messages").delete().eq("id", messageId)
+  if (error) {
+    console.error("deleteMessage failed:", error.message)
+    return { error: "We couldn't remove the message. Please try again." }
+  }
+
+  revalidatePath("/admin/messages")
+  return { success: true }
+}
+
+// Admin lifecycle override for appointments. The appointment trigger keeps
+// patient notifications consistent (confirmed / cancelled / completed).
+export async function setAppointmentStatusAction(prevState, formData) {
+  const { supabase, error: guardError } = await requireAdmin()
+  if (guardError) return { error: guardError }
+
+  const appointmentId = String(formData.get("appointment_id") || "")
+  const newStatus = String(formData.get("status") || "")
+  if (!appointmentId) return { error: "Missing appointment." }
+  if (!["cancelled", "completed"].includes(newStatus)) return { error: "Invalid status." }
+
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select("id, status")
+    .eq("id", appointmentId)
+    .maybeSingle()
+  if (!appt) return { error: "Appointment not found." }
+  if (appt.status === "cancelled") return { error: "This appointment is already cancelled." }
+  if (appt.status === "completed") return { error: "This appointment is already completed." }
+
+  const { error } = await supabase
+    .from("appointments")
+    .update({ status: newStatus })
+    .eq("id", appointmentId)
+  if (error) {
+    console.error("setAppointmentStatus failed:", error.message)
+    return { error: "We couldn't update the appointment. Please try again." }
+  }
+
+  revalidatePath("/admin/appointments")
+  revalidatePath("/admin/dashboard")
+  return { success: true, status: newStatus }
+}
+
+// Send an in-app notification to a role-based audience. Returns how many
+// users were reached.
+export async function broadcastNotificationAction(prevState, formData) {
+  const { supabase, error: guardError } = await requireAdmin()
+  if (guardError) return { error: guardError }
+
+  const audience = String(formData.get("audience") || "all")
+  const title = String(formData.get("title") || "").trim()
+  const body = String(formData.get("body") || "").trim()
+  const link = String(formData.get("link") || "").trim()
+
+  if (!["all", "patients", "doctors", "admins"].includes(audience)) {
+    return { error: "Invalid audience." }
+  }
+  if (!title) return { error: "A title is required." }
+
+  const { data, error } = await supabase.rpc("admin_broadcast_notifications", {
+    p_audience: audience,
+    p_title: title,
+    p_body: body || null,
+    p_link: link || null,
+  })
+  if (error) {
+    console.error("broadcast failed:", error.message)
+    return { error: "We couldn't send the notification. Please try again." }
+  }
+
+  revalidatePath("/admin/notifications")
+  return { success: true, count: Number(data || 0), audience }
 }
 

@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Filter, Star, X } from 'lucide-react';
+import { Filter, Star, X, Check } from 'lucide-react';
 
-export default function AvailableDoctors({ doctors = [] }) {
+export default function AvailableDoctors({ doctors = [], bookedDoctorIds = new Set() }) {
   const [specialty, setSpecialty] = useState('');
 
   const specialties = useMemo(
@@ -97,12 +97,24 @@ export default function AvailableDoctors({ doctors = [] }) {
             </div>
           </div>
           <div className="mt-2 sm:mt-0 w-full sm:w-auto">
-            <a
-              href="/patient/appointments"
-              className="block w-full sm:w-auto text-center bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] transition-colors px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm"
-            >
-              Book Appointment
-            </a>
+            {bookedDoctorIds.has(doc.id) ? (
+              <a
+                href="/patient/my-appointments"
+                className="block w-full sm:w-auto text-center border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary-fixed-dim)] transition-colors px-6 py-2.5 rounded-lg text-sm font-semibold"
+              >
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <Check className="w-4 h-4" />
+                  Booked
+                </span>
+              </a>
+            ) : (
+              <a
+                href="/patient/appointments"
+                className="block w-full sm:w-auto text-center bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] transition-colors px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm"
+              >
+                Book Appointment
+              </a>
+            )}
           </div>
         </div>
       ))}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { VideoOff, CalendarDays, Clock, MessageSquare, Stethoscope } from 'lucide-react';
+import { VideoOff, CalendarDays, Clock, MessageSquare, Stethoscope, User } from 'lucide-react';
 
 function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
@@ -140,6 +140,16 @@ function PatientCard({ a, consultationCount }) {
           <MessageSquare className="w-3.5 h-3.5" />
           Talk
         </Link>
+        {a.patient_id && (
+          <Link
+            href={`/doctor/patients/${a.patient_id}`}
+            className="text-xs font-semibold inline-flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors hover:opacity-90 shrink-0"
+            style={{ color: 'var(--color-primary)', border: '1px solid var(--color-outline-variant)' }}
+          >
+            <User className="w-3.5 h-3.5" />
+            Profile
+          </Link>
+        )}
       </div>
     </div>
   );

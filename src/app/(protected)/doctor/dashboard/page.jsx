@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/supabase/profile';
+import PendingRequests from './PendingRequests';
+import TodayAppointments from './TodayAppointments';
 import {
   Menu,
   Activity,
   Clock,
-  MoreVertical,
   CalendarDays
 } from 'lucide-react';
 
@@ -18,13 +19,19 @@ export default async function DoctorDashboard() {
 
   // Real dynamic data (RLS scopes appointments to this doctor,
   // RPC joins profiles for patient names so we don't depend on auth.users FKs)
-  const [{ data: todayAppointments = [] }, { data: nextResult = [] }] = await Promise.all([
+  const [{ data: todayAppointments = [] }, { data: nextResult = [] }, { data: allAppointments = [] }] = await Promise.all([
     supabase.rpc('get_doctor_today_appointments'),
     supabase.rpc('get_doctor_next_appointment'),
+    supabase.rpc('get_doctor_appointments'),
   ])
 
   const upcoming = nextResult[0] || null
   const totalToday = todayAppointments.length
+
+  // Bookings that still need the doctor's decision, oldest first.
+  const pendingRequests = (allAppointments || [])
+    .filter((a) => a.status === 'pending')
+    .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))
 
   function fmtTime(iso) {
     return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
@@ -145,77 +152,16 @@ export default async function DoctorDashboard() {
                 <h2 className="text-lg font-bold" style={{ color: 'var(--color-on-surface)' }}>
 Today&apos;s Appointments
                 </h2>
-                <button className="text-xs font-semibold hover:underline" style={{ color: 'var(--color-primary-container)' }}>
+                <a
+                  href="/doctor/consultations"
+                  className="text-xs font-semibold hover:underline"
+                  style={{ color: 'var(--color-primary-container)' }}
+                >
                   View All
-                </button>
+                </a>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-2">
-                <ul className="divide-y" style={{ borderColor: 'var(--color-outline-variant)' }}>
-                  {todayAppointments.length === 0 ? (
-                    <li className="p-3 text-sm" style={{ color: 'var(--color-on-surface-variant)' }}>
-                      No appointments scheduled for today.
-                    </li>
-                  ) : (
-                    todayAppointments.map((appt) => {
-                      const patientName = appt.patient_name || 'Patient'
-                      const initials = patientName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
-                      return (
-                        <li key={appt.id} className="p-3 rounded-lg transition-colors flex items-center justify-between hover:bg-[var(--color-surface-container-low)]">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs"
-                              style={{
-                                backgroundColor: 'var(--color-surface-container-high)',
-                                color: 'var(--color-primary)',
-                              }}
-                            >
-                              {initials}
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold" style={{ color: 'var(--color-on-surface)' }}>
-                                {patientName}
-                              </p>
-                              <p className="text-xs" style={{ color: 'var(--color-on-surface-variant)' }}>
-                                {appt.reason || 'Consultation'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right hidden sm:block">
-                              <p className="text-xs font-medium" style={{ color: 'var(--color-on-surface)' }}>
-                                {fmtTime(appt.scheduled_at)}
-                              </p>
-                              <p className="text-[10px]" style={{ color: 'var(--color-on-surface-variant)' }}>
-                                {appt.duration_min} Min
-                              </p>
-                            </div>
-                            <span
-                              className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                              style={
-                                (appt.status === 'confirmed' && { backgroundColor: 'var(--color-secondary)', color: 'var(--color-primary-dark)' }) ||
-                                { backgroundColor: 'var(--color-surface-container-high)', color: 'var(--color-on-surface-variant)' }
-                              }
-                            >
-                              {appt.status}
-                            </span>
-                            <button className="hover:opacity-75 transition-opacity" style={{ color: 'var(--color-on-surface-variant)' }}>
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                            <a
-                              href={`/doctor/consultation/${appt.id}`}
-                              className="text-xs font-semibold inline-flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors hover:opacity-90"
-                              style={{ backgroundColor: 'var(--color-secondary)', color: 'var(--color-primary-dark)' }}
-                            >
-                              Open
-                            </a>
-                          </div>
-                        </li>
-                      )
-                    })
-                  )}
-                </ul>
-              </div>
+              <TodayAppointments appointments={todayAppointments || []} />
             </div>
 
             {/* Patient Requests Queue */}
@@ -227,19 +173,21 @@ Today&apos;s Appointments
               }}
             >
               <div
-                className="p-4 border-b"
+                className="p-4 border-b flex justify-between items-center"
                 style={{ borderColor: 'var(--color-outline-variant)' }}
               >
                 <h2 className="text-lg font-bold" style={{ color: 'var(--color-on-surface)' }}>
                   Patient Requests
                 </h2>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: 'var(--color-primary-fixed-dim)', color: 'var(--color-primary)' }}
+                >
+                  {pendingRequests.length}
+                </span>
               </div>
 
-              <div className="flex-1 p-3 flex items-center justify-center">
-                <p className="text-sm text-center" style={{ color: 'var(--color-on-surface-variant)' }}>
-                  No pending requests
-                </p>
-              </div>
+              <PendingRequests requests={pendingRequests} />
             </div>
 
           </div>

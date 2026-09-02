@@ -1,6 +1,7 @@
 "use client"
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import createClient from '@/lib/supabase/client'
 import {
@@ -10,6 +11,8 @@ import {
   History,
   LogOut,
   Users,
+  Pill,
+  UserRound,
 } from 'lucide-react'
 import NotificationBell from '@/Components/layout/NotificationBell'
 
@@ -17,9 +20,11 @@ const NAV_CONFIG = [
   { label: 'Overview', path: '/doctor/dashboard', icon: LayoutDashboard },
   { label: 'My Patients', path: '/doctor/consultations', icon: Users },
   { label: 'Consultation History', path: '/doctor/consultation-history', icon: History },
+  { label: 'Prescriptions', path: '/doctor/prescriptions', icon: Pill },
+  { label: 'My Profile', path: '/doctor/profile', icon: UserRound },
 ]
 
-export default function Sidebar({ userName = '', userEmail = '' }) {
+export default function Sidebar({ userName = '', userEmail = '', avatarUrl = null }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -56,16 +61,20 @@ export default function Sidebar({ userName = '', userEmail = '' }) {
     >
       {/* Doctor Header */}
       <div className="flex items-center gap-3 mb-8 px-2">
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shrink-0 border"
-          style={{
-            backgroundColor: 'var(--color-primary-container)',
-            color: 'var(--color-on-primary)',
-            borderColor: 'var(--color-outline-variant)',
-          }}
-        >
-          {initials || 'Dr'}
-        </div>
+        {avatarUrl ? (
+          <Image src={avatarUrl} alt="Profile" width={48} height={48} className="w-12 h-12 rounded-full object-cover shrink-0 border" style={{ borderColor: 'var(--color-outline-variant)' }} />
+        ) : (
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shrink-0 border"
+            style={{
+              backgroundColor: 'var(--color-primary-container)',
+              color: 'var(--color-on-primary)',
+              borderColor: 'var(--color-outline-variant)',
+            }}
+          >
+            {initials || 'Dr'}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-bold leading-snug truncate" style={{ color: 'var(--color-primary)' }}>
             {displayName}

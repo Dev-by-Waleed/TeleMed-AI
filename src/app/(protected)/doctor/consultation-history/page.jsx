@@ -11,11 +11,13 @@ export default async function ConsultationHistory() {
   const { data: records = [] } = await supabase.rpc('get_consultation_records')
 
   const consultations = records.map((r) => ({
+    appointmentId: r.id,
     id: r.id.slice(0, 8).toUpperCase(),
     name: r.patient_name || r.doctor_name || 'Patient',
     date: new Date(r.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     time: new Date(r.scheduled_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     status: r.status[0].toUpperCase() + r.status.slice(1).replace('_', ' '),
+    summary: r.summary || '',
   }))
 
   return (

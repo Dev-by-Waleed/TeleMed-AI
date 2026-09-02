@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useActionState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Search,
   Filter,
@@ -9,15 +10,97 @@ import {
   FileText,
   Check,
   X,
+  Loader2,
+  Stethoscope,
 } from 'lucide-react';
+import { saveConsultationNotesAction } from '@/actions/consultation';
 
 const STATUS_OPTIONS = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
+
+function SummaryModal({ appointment, onClose }) {
+  const [state, formAction, isPending] = useActionState(saveConsultationNotesAction, null);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.success) router.refresh();
+  }, [state, router]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-xl border shadow-xl p-6"
+        style={{ backgroundColor: 'var(--color-surface-card)', borderColor: 'var(--color-outline-variant)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-on-surface)' }}>
+              <Stethoscope className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
+              Consultation Summary
+            </h3>
+            <p className="text-xs mt-1" style={{ color: 'var(--color-on-surface-variant)' }}>
+              {appointment.name} &middot; {appointment.date} at {appointment.time}
+            </p>
+          </div>
+          <button onClick={onClose} style={{ color: 'var(--color-on-surface-variant)' }} aria-label="Close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {state?.error && (
+          <div role="alert" className="mb-4 p-3 rounded-lg text-sm font-medium text-center"
+            style={{ backgroundColor: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.2)', color: 'rgb(220,38,38)' }}>
+            {state.error}
+          </div>
+        )}
+        {state?.success && (
+          <div role="status" className="mb-4 p-3 rounded-lg text-sm font-medium text-center"
+            style={{ backgroundColor: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)', color: 'rgb(22,163,74)' }}>
+            Summary saved.
+          </div>
+        )}
+
+        <form action={formAction} className="flex flex-col gap-3">
+          <input type="hidden" name="appointmentId" value={appointment.appointmentId} />
+          <textarea
+            name="notes"
+            rows={6}
+            defaultValue={appointment.summary || ''}
+            placeholder="Write a summary of the encounter, diagnosis, and follow-up plan..."
+            className="w-full rounded-lg border px-4 py-2 text-sm resize-none focus:outline-none"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              borderColor: 'var(--color-outline-variant)',
+              color: 'var(--color-on-surface)',
+            }}
+          />
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold shadow-sm transition-opacity disabled:opacity-50"
+              style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)' }}
+            >
+              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              Save Summary
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default function ConsultationHistoryView({ consultations }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [summaryFor, setSummaryFor] = useState(null);
   const filterRef = useRef(null);
 
   const PAGE_SIZE = 5;
@@ -246,6 +329,7 @@ export default function ConsultationHistoryView({ consultations }) {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
+                          onClick={() => setSummaryFor(item)}
                           className="px-3.5 py-1.5 rounded-lg font-semibold text-xs transition-colors inline-flex items-center gap-1.5 hover:opacity-90"
                           style={{
                             backgroundColor: 'var(--color-secondary)',
@@ -324,6 +408,8 @@ export default function ConsultationHistoryView({ consultations }) {
         </div>
 
       </div>
+
+      {summaryFor && <SummaryModal appointment={summaryFor} onClose={() => setSummaryFor(null)} />}
     </main>
   );
 }
