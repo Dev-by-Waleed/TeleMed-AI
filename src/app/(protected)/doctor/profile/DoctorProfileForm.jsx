@@ -6,8 +6,9 @@ import { Save, Loader2, Stethoscope, Mail, UserRound, FileText, ShieldCheck } fr
 import { updateDoctorProfileAction } from "@/actions/doctor-profile";
 import AvatarUpload from "@/Components/account/AvatarUpload";
 import ChangePasswordForm from "@/Components/account/ChangePasswordForm";
+import ProfileRequestForm from "./ProfileRequestForm";
 
-export default function DoctorProfileForm({ doctor, userEmail, fullName, avatarUrl }) {
+export default function DoctorProfileForm({ doctor, userEmail, fullName, avatarUrl, requests = [] }) {
   const [state, formAction, isPending] = useActionState(updateDoctorProfileAction, null);
   const router = useRouter();
 
@@ -122,8 +123,6 @@ export default function DoctorProfileForm({ doctor, userEmail, fullName, avatarU
             </div>
           </section>
 
-          <ChangePasswordForm />
-
           <div className="pt-2 flex justify-end gap-3">
             <a
               href="/doctor/dashboard"
@@ -150,6 +149,10 @@ export default function DoctorProfileForm({ doctor, userEmail, fullName, avatarU
             </button>
           </div>
         </form>
+
+        <ChangePasswordForm />
+
+        <ProfileRequestForm doctor={doctor || {}} requests={requests} />
       </div>
     </main>
   );

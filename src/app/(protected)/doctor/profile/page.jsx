@@ -28,12 +28,19 @@ export default async function DoctorProfilePage() {
     .eq("id", user.id)
     .maybeSingle()
 
+  const { data: requests = [] } = await supabase
+    .from("doctor_profile_requests")
+    .select("id, requested_full_name, requested_specialty, reason, status, admin_response, created_at")
+    .eq("doctor_id", user.id)
+    .order("created_at", { ascending: false })
+
   return (
     <DoctorProfileForm
       doctor={doctor || null}
       userEmail={user.email || ""}
       fullName={user.user_metadata?.full_name || doctor?.full_name || ""}
       avatarUrl={profileRow?.avatar_url || null}
+      requests={requests || []}
     />
   )
 }

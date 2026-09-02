@@ -106,6 +106,22 @@ export async function discontinuePrescriptionAction(prevState, formData) {
     return { error: "We couldn't update this prescription. Please try again." }
   }
 
+  // Notify the patient that the prescription was discontinued.
+  const { data: rxInfo } = await supabase
+    .from("prescriptions")
+    .select("patient_id, medication_name")
+    .eq("id", prescriptionId)
+    .maybeSingle()
+  if (rxInfo) {
+    await supabase.from("notifications").insert({
+      user_id: rxInfo.patient_id,
+      type: "general",
+      title: "Prescription discontinued",
+      body: `Your prescription for ${rxInfo.medication_name} has been discontinued by your doctor.`,
+      link: "/patient/prescriptions",
+    })
+  }
+
   revalidatePath("/doctor/prescriptions")
   return { success: true }
 }

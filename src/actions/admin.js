@@ -73,12 +73,25 @@ export async function createDoctorAction(prevState, formData) {
   if (isInvite) {
     const { error: inviteErr } = await admin
       .from("doctors")
-      .update({ invite_token: inviteToken })
+      .update({ invite_token: inviteToken, invited_by: user.id })
       .eq("id", userId)
     if (inviteErr) {
       console.error("Set invite token failed:", inviteErr.message)
     }
   }
+
+  // Welcome the newly created doctor. For direct creation they can log in
+  // immediately; for invite mode the notification surfaces once they activate
+  // and log in for the first time.
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    type: "general",
+    title: "Welcome to TeleMed",
+    body: isInvite
+      ? "You've been invited to join as a doctor. Use your invite link to set your password and activate your account."
+      : "Your doctor account has been created. You can now log in to get started.",
+    link: isInvite ? `/doctor-invite/${inviteToken}` : "/doctor/dashboard",
+  })
 
   return {
     success: true,
@@ -103,7 +116,7 @@ export async function activateInviteDoctorAction(prevState, formData) {
   const supabase = await createClient()
   const { data: doctor } = await supabase
     .from("doctors")
-    .select("id, full_name, active_status")
+    .select("id, full_name, active_status, invited_by")
     .eq("invite_token", token)
     .maybeSingle()
   if (!doctor || doctor.active_status !== "invited") {
@@ -131,6 +144,17 @@ export async function activateInviteDoctorAction(prevState, formData) {
   }
 
   await admin.from("profiles").update({ account_status: "active" }).eq("id", doctor.id)
+
+  // Notify the admin who invited this doctor that their invite was accepted.
+  if (doctor.invited_by) {
+    await admin.from("notifications").insert({
+      user_id: doctor.invited_by,
+      type: "general",
+      title: "Doctor invite accepted",
+      body: `${doctor.full_name} has accepted their invitation and activated their account.`,
+      link: "/admin/doctors",
+    })
+  }
 
   return { success: true, email: String(formData.get("email") || "") }
 }
@@ -168,6 +192,20 @@ export async function setUserStatusAction(prevState, formData) {
   if (error) {
     console.error("setUserStatus failed:", error.message)
     return { error: "We couldn't update the account. Please try again." }
+  }
+
+  // Notify the affected user when their account is suspended or reactivated.
+  if (status === "suspended" || status === "active") {
+    const isSuspension = status === "suspended"
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type: "general",
+      title: isSuspension ? "Account suspended" : "Account reactivated",
+      body: isSuspension
+        ? "Your account has been suspended. Please contact support for assistance."
+        : "Your account has been reactivated. You can now log in and use TeleMed.",
+      link: null,
+    })
   }
 
   return { success: true }

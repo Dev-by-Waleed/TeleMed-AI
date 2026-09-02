@@ -306,8 +306,6 @@ export default function ProfileForm({ profile, userEmail, fullName, avatarUrl })
             </div>
           </section>
 
-          <ChangePasswordForm />
-
           {/* Actions */}
           <div className="pt-2 flex justify-end gap-3">
             <a
@@ -335,6 +333,8 @@ export default function ProfileForm({ profile, userEmail, fullName, avatarUrl })
             </button>
           </div>
         </form>
+
+        <ChangePasswordForm />
       </div>
     </main>
   );

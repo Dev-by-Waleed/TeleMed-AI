@@ -43,9 +43,11 @@ model, and behavior. All are implemented.
 ### Appointment notifications
 - `handle_appointment_notifications()` trigger (`trg_appointment_notifications`,
   AFTER INSERT OR UPDATE): patients get a notification on requested/confirmed/
-  cancelled/completed. Deduplicated against the doctor's existing
-  `trg_notify_new_appointment`. `notifications` is in the Realtime publication,
-  so the bell badge updates live.
+  cancelled/completed, and **the doctor is also notified when an appointment is
+  cancelled** (covers both the cancel and reschedule flows — rescheduling is
+  implemented as cancel + re-book). Deduplicated against the doctor's existing
+  `trg_notify_new_appointment` for new bookings. `notifications` is in the
+  Realtime publication, so the bell badge updates live.
 
 ### Prescriptions & refills
 - `GET /patient/prescriptions` (page + `PrescriptionsClient.jsx`,
@@ -222,6 +224,50 @@ Admin-role oversight features. The admin portal uses its own vertical
   and a "Showing: Incomplete onboarding" toggle to isolate them (data from
   `admin_get_patients().completed_onboarding`).
 
+## Notifications (all roles)
+
+In-app notifications live in the `notifications` table and are surfaced to every
+role through the shared `NotificationBell` (badge + dropdown) with live Realtime
+updates. There is **no standalone notification page for patients or doctors** —
+only admins have `/admin/notifications` (broadcast + audit). Everything below is
+already implemented.
+
+**Who gets notified, and when:**
+
+| Event | Recipient | Mechanism |
+|---|---|---|
+| New chat message | The other party (patient ↔ doctor) | `trg_notify_new_message` |
+| New appointment requested | Doctor | `trg_notify_new_appointment` |
+| Appointment requested | Patient | `trg_appointment_notifications` |
+| Appointment confirmed | Patient | `trg_appointment_notifications` |
+| Appointment completed | Patient | `trg_appointment_notifications` |
+| Appointment cancelled | Patient + Doctor | `trg_appointment_notifications` |
+| Prescription issued | Patient | `trg_prescription_notifications` |
+| Prescription discontinued | Patient | server action (`discontinuePrescriptionAction`) |
+| Prescription refill requested | Patient + Doctor | `trg_refill_request` |
+| Refill approved / declined | Patient | server action (`resolveRefillAction`) |
+| New review received | Doctor | `trg_review_notifications` |
+| Profile change request outcome | Requesting doctor | server action (`decideProfileRequestAction`) |
+| New profile change request | All active admins | `trg_profile_request_notifications` |
+| Doctor invite accepted | The inviting admin | server action (`activateInviteDoctorAction`) |
+| Doctor account created / invited | The new doctor | server action (`createDoctorAction`) |
+| Account suspended / reactivated | The affected user | server action (`setUserStatusAction`) |
+| Admin broadcast | All / patients / doctors / admins | `admin_broadcast_notifications` RPC |
+
+**Notes / supporting features added:**
+- The `doctors` table gained an `invited_by` column (uuid FK → `auth.users`)
+  recording which admin created a doctor-invite, so the invite-accepted
+  notification can reach the right admin (previously only a boolean
+  `created_by_admin` existed).
+- `trg_profile_request_notifications` and `trg_review_notifications` are
+  SECURITY DEFINER triggers so they can resolve recipient names/role lists that
+  a caller's RLS wouldn't otherwise expose.
+- Deliberately **not** notified: patient report uploads, AI report analysis
+  completion/failure (both synchronous — the user sees the result immediately),
+  consultation-notes saves, review/message moderation deletions, and
+  self-service profile changes. See `NOTIFICATION_AUDIT.md` for the full
+  rationale.
+
 ## Tech stack
 
 | Layer    | Tech |
@@ -270,7 +316,7 @@ npm run lint     # ESLint
 - Roles are forced in the database (a sign-up trigger always creates `patient`); the client never supplies a role, and a trigger blocks role escalation.
 - Doctor/patient/admin data is fetched through scoped security-definer RPCs (e.g. `get_doctor_appointments`, `get_consultation_records`, `admin_get_stats`, `admin_get_patients`, `admin_get_prescriptions`, `admin_get_reviews`, `admin_get_notifications`, `admin_broadcast_notifications`, `get_available_slots`, `is_slot_available`) that join `profiles`/`doctors` and filter by `auth.uid()` / `is_admin()`.
 - Consultations are modelled on the `appointments` table; `messages` are scoped to `appointment_id` and exposed via realtime.
-- Patient-era additions: `prescriptions` and `reviews` tables (RLS on, UNIQUE review per appointment) and triggers `trg_appointment_notifications` (status → bell), `trg_refill_request` (refill asks), `trg_reviews_recompute_rating` (live doctor rating). Admin-oversight additions: **Admins manage notifications** RLS policy (ALL) plus the `admin_get_*` / `admin_broadcast_notifications` RPCs. RLS helper functions `is_attending_doctor(uuid)` and `is_doctor()` must have `EXECUTE` granted to `authenticated`/`anon` — see migration `grant_rls_helper_function_execute`.
+- Patient-era additions: `prescriptions` and `reviews` tables (RLS on, UNIQUE review per appointment) and triggers `trg_appointment_notifications` (status → bell, incl. doctor on cancellation), `trg_refill_request` (refill asks), `trg_reviews_recompute_rating` (live doctor rating). Notification triggers added later: `trg_notify_new_message` (chat → other party), `trg_prescription_notifications` (new prescription → patient), `trg_review_notifications` (new review → doctor), `trg_profile_request_notifications` (new profile request → admins). Admin-oversight additions: **Admins manage notifications** RLS policy (ALL) plus the `admin_get_*` / `admin_broadcast_notifications` RPCs. RLS helper functions `is_attending_doctor(uuid)` and `is_doctor()` must have `EXECUTE` granted to `authenticated`/`anon` — see migration `grant_rls_helper_function_execute`.
 
 ## Project structure
 
