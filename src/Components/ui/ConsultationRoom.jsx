@@ -20,6 +20,8 @@ import {
   X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { fmtTime } from '@/lib/date';
+import { toast } from 'sonner';
 
 export default function ConsultationRoom({
   appointmentId,
@@ -52,6 +54,7 @@ export default function ConsultationRoom({
     instructions: '',
   });
   const [rxMsg, setRxMsg] = useState('');
+  const [reportOpen, setReportOpen] = useState(false);
   const listRef = useRef(null);
 
   const supabase = createClient();
@@ -172,9 +175,12 @@ export default function ConsultationRoom({
     if (result?.success) {
       setRoomStatus('completed');
       setCompleteMsg('Consultation marked as completed.');
+      toast.success('Consultation marked as completed.');
       router.refresh();
     } else {
-      setCompleteMsg(result?.error || 'Could not complete the consultation.');
+      const msg = result?.error || 'Could not complete the consultation.';
+      setCompleteMsg(msg);
+      toast.error(msg);
     }
   }
 
@@ -190,9 +196,11 @@ export default function ConsultationRoom({
     setPrescribing(false);
     if (result?.error) {
       setRxMsg(result.error);
+      toast.error(result.error);
     } else {
       setRxForm({ medicationName: '', dosage: '', frequency: '', instructions: '' });
       setRxMsg('Prescription saved.');
+      toast.success('Prescription saved.');
       setPrescribeOpen(false);
       router.refresh();
     }
@@ -273,23 +281,18 @@ export default function ConsultationRoom({
           </Section>
 
           {context.reports && context.reports.length > 0 && (
-            <Section icon={FileText} title="Reports">
-              <ul className="space-y-2">
-                {context.reports.map((r) => (
-                  <li key={r.id} className="rounded-lg border border-[var(--color-outline-variant)] p-2">
-                    <p className="font-semibold text-[var(--color-on-surface)] truncate">{r.title}</p>
-                    <p className="text-[10px] text-[var(--color-on-surface-variant)] capitalize">
-                      {r.status === 'analyzed' ? 'AI summary available' : r.status}
-                    </p>
-                    {r.ai_summary && (
-                      <div className="text-[11px] text-[var(--color-on-surface)] mt-1 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:font-semibold">
-                        <ReactMarkdown>{r.ai_summary}</ReactMarkdown>
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </Section>
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className="flex items-center justify-between w-full rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] px-3 py-2 text-left hover:border-[var(--color-primary)] transition-colors"
+            >
+              <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--color-on-surface-variant)]">
+                <FileText className="w-3.5 h-3.5" /> Reports
+              </span>
+              <span className="text-[11px] font-semibold text-[var(--color-primary)]">
+                {context.reports.length} • View
+              </span>
+            </button>
           )}
         </div>
       </aside>
@@ -375,7 +378,7 @@ export default function ConsultationRoom({
                 <div className={`max-w-[70%] p-3 rounded-lg shadow-sm ${mine ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)]/60'}`}>
                   <p className="text-sm leading-relaxed">{m.body}</p>
                   <span className={`text-[10px] mt-1.5 block ${mine ? 'text-white/70' : 'text-[var(--color-on-surface-variant)]'}`}>
-                    {new Date(m.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    {fmtTime(m.created_at)}
                   </span>
                 </div>
               </div>
@@ -401,6 +404,10 @@ export default function ConsultationRoom({
           </button>
         </form>
       </div>
+
+      {reportOpen && (
+        <ReportPanel reports={context.reports} onClose={() => setReportOpen(false)} />
+      )}
 
       {prescribeOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => setPrescribeOpen(false)}>
@@ -499,6 +506,52 @@ function Info({ label, children }) {
     <div>
       <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-on-surface-variant)]">{label}</p>
       <p className="text-[var(--color-on-surface)] mt-0.5">{children}</p>
+    </div>
+  );
+}
+
+function ReportPanel({ reports, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md max-h-[80vh] rounded-xl p-6 shadow-xl overflow-y-auto"
+        style={{ backgroundColor: 'var(--color-surface-card)', border: '1px solid var(--color-outline-variant)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--color-on-surface)' }}>
+            <FileText className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
+            Patient Reports
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="hover:opacity-70 transition-opacity"
+            style={{ color: 'var(--color-on-surface-variant)' }}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <ul className="space-y-3">
+          {reports.map((r) => (
+            <li key={r.id} className="rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] p-3">
+              <p className="text-sm font-semibold text-[var(--color-on-surface)]">{r.title}</p>
+              <p className="text-[10px] text-[var(--color-on-surface-variant)] capitalize mt-0.5">
+                {r.status === 'analyzed' ? 'AI summary available' : r.status}
+              </p>
+              {r.ai_summary && (
+                <div className="text-xs text-[var(--color-on-surface)] mt-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:font-semibold">
+                  <ReactMarkdown>{r.ai_summary}</ReactMarkdown>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

@@ -53,6 +53,19 @@ export async function submitProfileRequestAction(prevState, formData) {
     return { error: "We couldn't submit your request. Please try again." }
   }
 
+  const changes = [
+    fullName ? `name to "${fullName}"` : null,
+    specialty ? `specialty to "${specialty}"` : null,
+  ].filter(Boolean).join(" and ")
+
+  await supabase.from("notifications").insert({
+    user_id: user.id,
+    type: "general",
+    title: "Profile change request submitted",
+    body: `Your request to change ${changes} has been sent to the admin for review.`,
+    link: "/doctor/profile",
+  })
+
   revalidatePath("/doctor/profile")
   return { success: true }
 }

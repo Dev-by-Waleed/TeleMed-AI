@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/supabase/profile';
+import { fmtCurrentDate, fmtTime } from '@/lib/date';
 import PendingRequests from './PendingRequests';
 import TodayAppointments from './TodayAppointments';
 import {
@@ -14,8 +15,7 @@ export default async function DoctorDashboard() {
   const user = await getUser(supabase)
 
   const userName = user?.user_metadata?.full_name || user?.email || 'Doctor'
-  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
-  const currentDate = new Date().toLocaleDateString('en-US', options)
+  const currentDate = fmtCurrentDate()
 
   // Real dynamic data (RLS scopes appointments to this doctor,
   // RPC joins profiles for patient names so we don't depend on auth.users FKs)
@@ -32,10 +32,6 @@ export default async function DoctorDashboard() {
   const pendingRequests = (allAppointments || [])
     .filter((a) => a.status === 'pending')
     .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at))
-
-  function fmtTime(iso) {
-    return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-  }
 
   return (
     <>

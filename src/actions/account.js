@@ -1,5 +1,6 @@
 "use server"
 import { createClient } from "@/lib/supabase/server"
+import createAdminClient from "@/lib/supabase/admin"
 
 const MAX_BYTES = 2 * 1024 * 1024 // 2 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]
@@ -19,7 +20,10 @@ export async function changePasswordAction(prevState, formData) {
     return { error: "New and confirm passwords do not match." }
   }
 
-  // Verify the current password before changing it.
+  // Verify the current password before changing it. Using a throwaway admin
+  // client here (persistSession: false) so it never touches/revokes the user's
+  // real browser session — re-authenticating with the normal server client was
+  // rotating the user's tokens and leaving neither password working.
   const supabase = await createClient()
   const {
     data: { user },
@@ -28,7 +32,8 @@ export async function changePasswordAction(prevState, formData) {
     return { error: "You must be signed in to change your password." }
   }
 
-  const { error: signInError } = await supabase.auth.signInWithPassword({
+  const admin = createAdminClient()
+  const { error: signInError } = await admin.auth.signInWithPassword({
     email: user.email,
     password: currentPassword,
   })
@@ -36,7 +41,7 @@ export async function changePasswordAction(prevState, formData) {
     return { error: "Your current password is incorrect." }
   }
 
-  const { error: updateError } = await supabase.auth.updateUser({
+  const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
     password: newPassword,
   })
   if (updateError) {

@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useActionState } from 'react';
 import { Pill, RefreshCcw, Check, X, Loader2, FileText } from 'lucide-react';
+import { toast } from 'sonner';
 import { resolveRefillAction } from '@/actions/admin';
+import { fmtDateShort } from '@/lib/date';
 
 function statusPill(status, refillRequested) {
   if (refillRequested) {
@@ -35,6 +37,14 @@ function Td({ children }) {
 
 function RefillRow({ rx }) {
   const [state, formAction, isPending] = useActionState(resolveRefillAction, null);
+
+  useEffect(() => {
+    if (state?.success) {
+      toast.success('Refill request resolved!');
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
+  }, [state]);
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 p-4 border border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg">
       <div className="flex items-center gap-3 min-w-0">
@@ -46,7 +56,7 @@ function RefillRow({ rx }) {
             {rx.medication_name} <span className="font-normal text-[var(--color-on-surface-variant)]">· {rx.dosage}</span>
           </p>
           <p className="text-xs text-[var(--color-on-surface-variant)] truncate">
-            {rx.patient_name || 'Patient'} → {rx.doctor_name || 'Doctor'} · requested {rx.refill_requested_at ? new Date(rx.refill_requested_at).toLocaleDateString() : ''}
+            {rx.patient_name || 'Patient'} → {rx.doctor_name || 'Doctor'} · requested {fmtDateShort(rx.refill_requested_at)}
           </p>
         </div>
       </div>
@@ -168,7 +178,7 @@ export default function PrescriptionsAdminView({ prescriptions = [] }) {
                     <Td>{rx.dosage}</Td>
                     <Td>{rx.frequency}</Td>
                     <td className="px-4 py-3">{statusPill(rx.status, rx.refill_requested)}</td>
-                    <Td>{rx.created_at ? new Date(rx.created_at).toLocaleDateString() : '—'}</Td>
+                    <Td>{fmtDateShort(rx.created_at) || '—'}</Td>
                   </tr>
                 ))}
               </tbody>

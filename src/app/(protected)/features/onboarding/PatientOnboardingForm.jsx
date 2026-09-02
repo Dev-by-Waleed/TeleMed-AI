@@ -1,21 +1,66 @@
 'use client';
 
-import React, { useActionState, useEffect } from 'react';
+import React, { useActionState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import { AlertTriangle, Pill, ShieldCheck, ArrowRight, Loader2 } from 'lucide-react';
 import { saveOnboardingAction } from '@/actions/onboarding';
+import { onboardingSchema } from '@/lib/validations';
 
 export default function PatientOnboardingForm() {
   const [state, formAction, isPending] = useActionState(saveOnboardingAction, null);
   const router = useRouter();
+  const [, startTransition] = useTransition();
 
-  // Redirect to the patient dashboard once the profile is successfully saved.
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(onboardingSchema),
+    mode: 'onTouched',
+    defaultValues: {
+      age: '',
+      gender: '',
+      height_cm: '',
+      weight_kg: '',
+      blood_group: '',
+      allergies: '',
+      medications: '',
+      conditions: '',
+      emergency_contact: '',
+      notes: '',
+      past_surgeries: '',
+      smoking_status: '',
+      chronic_illness_notes: '',
+    },
+  });
+
   useEffect(() => {
     if (state?.success) {
+      toast.success("Profile completed! Let's find you a doctor.");
       router.push('/patient/dashboard');
       router.refresh();
+    } else if (state?.error) {
+      toast.error(state.error);
     }
   }, [state, router]);
+
+  const onSubmit = (data) => {
+    const fd = new FormData();
+    fd.set('age', String(data.age));
+    fd.set('gender', data.gender === 'other' ? 'non-binary' : data.gender === 'prefer_not_to_say' ? 'prefer-not-to-say' : data.gender);
+    fd.set('height', String(data.height_cm));
+    fd.set('weight', String(data.weight_kg));
+    fd.set('bloodGroup', data.blood_group ?? '');
+    fd.set('allergies', data.allergies ?? '');
+    fd.set('medications', data.medications ?? '');
+    fd.set('conditions', data.conditions ?? '');
+    fd.set('emergencyContact', data.emergency_contact);
+    fd.set('notes', data.notes ?? '');
+    fd.set('pastSurgeries', data.past_surgeries ?? '');
+    fd.set('smokingStatus', data.smoking_status ?? '');
+    fd.set('chronicIllnessNotes', data.chronic_illness_notes ?? '');
+    startTransition(() => formAction(fd));
+  };
 
   return (
     <main className="w-full min-h-screen flex items-center justify-center p-4 md:p-10 bg-[var(--color-background)] text-[var(--color-foreground)]">
@@ -41,7 +86,7 @@ export default function PatientOnboardingForm() {
         )}
 
         {/* Form */}
-        <form action={formAction} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
           {/* Section 1: Basic Vitals Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -53,13 +98,13 @@ export default function PatientOnboardingForm() {
               <input
                 type="number"
                 id="age"
-                name="age"
                 min="1"
                 max="150"
                 placeholder="e.g. 45"
-                required
+                {...register('age')}
                 className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
               />
+              {errors.age && <p className="text-xs text-red-500 mt-1">{errors.age.message}</p>}
             </div>
 
             {/* Gender */}
@@ -69,66 +114,65 @@ export default function PatientOnboardingForm() {
               </label>
               <select
                 id="gender"
-                name="gender"
-                required
-                defaultValue=""
+                {...register('gender')}
                 className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
               >
                 <option value="" disabled>Select gender</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
-                <option value="non-binary">Non-binary</option>
-                <option value="prefer-not-to-say">Prefer not to say</option>
+                <option value="other">Non-binary</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
               </select>
+              {errors.gender && <p className="text-xs text-red-500 mt-1">{errors.gender.message}</p>}
             </div>
 
             {/* Height */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="height">
+              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="height_cm">
                 Height (cm)
               </label>
               <input
                 type="number"
-                id="height"
-                name="height"
+                id="height_cm"
                 min="50"
                 max="250"
                 placeholder="e.g. 175"
-                required
+                {...register('height_cm')}
                 className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
               />
+              {errors.height_cm && <p className="text-xs text-red-500 mt-1">{errors.height_cm.message}</p>}
             </div>
 
             {/* Weight */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="weight">
+              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="weight_kg">
                 Weight (kg)
               </label>
               <input
                 type="number"
-                id="weight"
-                name="weight"
+                id="weight_kg"
                 min="2"
                 max="400"
                 placeholder="e.g. 70"
-                required
+                {...register('weight_kg')}
                 className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
               />
+              {errors.weight_kg && <p className="text-xs text-red-500 mt-1">{errors.weight_kg.message}</p>}
             </div>
 
             {/* Emergency Contact */}
             <div className="flex flex-col gap-1 md:col-span-2">
-              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="emergencyContact">
+              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="emergency_contact">
                 Emergency Contact Number
               </label>
               <input
                 type="tel"
-                id="emergencyContact"
-                name="emergencyContact"
+                id="emergency_contact"
                 placeholder="e.g. +1 555 123 4567"
-                required
+                {...register('emergency_contact')}
                 className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
               />
+              {errors.emergency_contact && <p className="text-xs text-red-500 mt-1">{errors.emergency_contact.message}</p>}
             </div>
           </div>
 
@@ -142,13 +186,12 @@ export default function PatientOnboardingForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Blood Group */}
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="bloodGroup">
+                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="blood_group">
                   Blood Group
                 </label>
                 <select
-                  id="bloodGroup"
-                  name="bloodGroup"
-                  defaultValue=""
+                  id="blood_group"
+                  {...register('blood_group')}
                   className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
                 >
                   <option value="">Select blood group</option>
@@ -160,13 +203,12 @@ export default function PatientOnboardingForm() {
 
               {/* Smoking Status */}
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="smokingStatus">
+                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="smoking_status">
                   Smoking Status
                 </label>
                 <select
-                  id="smokingStatus"
-                  name="smokingStatus"
-                  defaultValue=""
+                  id="smoking_status"
+                  {...register('smoking_status')}
                   className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
                 >
                   <option value="">Select smoking status</option>
@@ -179,28 +221,28 @@ export default function PatientOnboardingForm() {
 
             {/* Past Surgeries */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="pastSurgeries">
+              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="past_surgeries">
                 Past Surgeries
               </label>
               <textarea
-                id="pastSurgeries"
-                name="pastSurgeries"
+                id="past_surgeries"
                 rows={2}
                 placeholder="List any past surgeries, if any"
+                {...register('past_surgeries')}
                 className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
               />
             </div>
 
             {/* Chronic Illness Notes */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="chronicIllnessNotes">
+              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="chronic_illness_notes">
                 Chronic Illness Notes
               </label>
               <textarea
-                id="chronicIllnessNotes"
-                name="chronicIllnessNotes"
+                id="chronic_illness_notes"
                 rows={2}
                 placeholder="Additional notes about any chronic illnesses"
+                {...register('chronic_illness_notes')}
                 className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
               />
             </div>
@@ -212,9 +254,9 @@ export default function PatientOnboardingForm() {
               </label>
               <textarea
                 id="notes"
-                name="notes"
                 rows={2}
                 placeholder="Anything else you'd like to share"
+                {...register('notes')}
                 className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
               />
             </div>
@@ -232,9 +274,9 @@ export default function PatientOnboardingForm() {
               </label>
               <textarea
                 id="allergies"
-                name="allergies"
                 rows={2}
                 placeholder="List any known allergies (e.g., Penicillin, Peanuts) or type 'None'"
+                {...register('allergies')}
                 className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
               />
             </div>
@@ -247,9 +289,9 @@ export default function PatientOnboardingForm() {
               </label>
               <textarea
                 id="medications"
-                name="medications"
                 rows={2}
                 placeholder="List current medications and dosages or type 'None'"
+                {...register('medications')}
                 className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
               />
             </div>
@@ -262,9 +304,9 @@ export default function PatientOnboardingForm() {
               </label>
               <textarea
                 id="conditions"
-                name="conditions"
                 rows={3}
                 placeholder="Briefly describe any chronic conditions (e.g., Asthma, Hypertension)"
+                {...register('conditions')}
                 className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
               />
             </div>

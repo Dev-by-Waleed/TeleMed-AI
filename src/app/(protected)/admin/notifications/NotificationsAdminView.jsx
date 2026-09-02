@@ -3,7 +3,9 @@
 import React, { useEffect } from 'react';
 import { useActionState } from 'react';
 import { BellRing, Send, Loader2, Clock, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { broadcastNotificationAction } from '@/actions/admin';
+import { fmtDateTime } from '@/lib/date';
 
 function BroadcastForm() {
   const [state, formAction, isPending] = useActionState(broadcastNotificationAction, null);
@@ -11,7 +13,10 @@ function BroadcastForm() {
 
   useEffect(() => {
     if (state?.success) {
+      toast.success('Notification broadcast sent!');
       formRef.current?.reset();
+    } else if (state?.error) {
+      toast.error(state.error);
     }
   }, [state]);
 
@@ -119,7 +124,7 @@ export default function NotificationsAdminView({ notifications = [] }) {
                       <Td>{n.title}</Td>
                       <td className="px-4 py-3 text-sm text-[var(--color-on-surface-variant)] max-w-[280px] truncate">{n.body || '—'}</td>
                       <Td>{n.is_read ? 'Yes' : 'No'}</Td>
-                      <Td>{n.created_at ? new Date(n.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</Td>
+                      <Td>{fmtDateTime(n.created_at) || '—'}</Td>
                     </tr>
                   ))}
                 </tbody>

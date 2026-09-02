@@ -1,14 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { fmtDate, fmtTime } from '@/lib/date';
 import { VideoOff, CalendarDays, Clock, MessageSquare, Stethoscope, User } from 'lucide-react';
 
-function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-}
-function fmtTime(iso) {
-  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
 function statusLabel(status) {
   return (status || 'pending').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }

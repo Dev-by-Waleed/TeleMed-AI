@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useActionState, useEffect } from 'react';
+import React, { useActionState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, ArrowRight, CalendarDays, Clock, CheckCircle2 } from 'lucide-react';
 import createClient from '@/lib/supabase/client'
 import { bookAppointmentAction } from '@/actions/appointments';
+import { bookingSchema } from '@/lib/validations';
+import { fmtDate, fmtTime, fmtSlotDate } from '@/lib/date';
+import { toast } from 'sonner';
 
 function nextNDays(n, startOffset = 1) {
   const days = [];
@@ -28,29 +33,28 @@ function candidateSlotsFor(date) {
   return slots;
 }
 
-function fmtDate(d) {
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-}
-
-function fmtTime(d) {
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
-
 export default function BookingForm({ doctors }) {
   const [state, formAction, isPending] = useActionState(bookAppointmentAction, null);
   const router = useRouter();
-  const [doctorId, setDoctorId] = React.useState('');
+  const [, startTransition] = useTransition();
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: { doctorId: '', scheduledAt: '', reason: '' },
+  });
+
+  const watchedDoctorId = watch('doctorId');
   const [day, setDay] = React.useState(null);
   const [time, setTime] = React.useState(null);
-  const [reason, setReason] = React.useState('');
   const [availableSlots, setAvailableSlots] = React.useState([]);
   const [loadedKey, setLoadedKey] = React.useState(null);
 
   const days = React.useMemo(() => nextNDays(7), []);
 
+  const doctorIdField = register('doctorId');
+
   // Fetch the server-computed available slots whenever the doctor or day changes.
   const dayKey = day ? day.toISOString().split('T')[0] : null;
-  const reqKey = doctorId && dayKey ? `${doctorId}|${dayKey}` : null;
+  const reqKey = watchedDoctorId && dayKey ? `${watchedDoctorId}|${dayKey}` : null;
   const slotsLoading = !!reqKey && loadedKey !== reqKey;
 
   useEffect(() => {
@@ -61,7 +65,7 @@ export default function BookingForm({ doctors }) {
     const p_slots = candidateSlotsFor(day);
 
     supabase
-      .rpc('get_available_slots', { p_doctor_id: doctorId, p_slots })
+      .rpc('get_available_slots', { p_doctor_id: watchedDoctorId, p_slots })
       .then(({ data }) => {
         if (alive) {
           setAvailableSlots((data || []).map((r) => new Date(r.slot).getTime()));
@@ -72,17 +76,27 @@ export default function BookingForm({ doctors }) {
     return () => {
       alive = false;
     };
-  }, [reqKey, doctorId, day]);
+  }, [reqKey, watchedDoctorId, day]);
 
   useEffect(() => {
-    if (state?.success) {
+    if (!state) return;
+    if (state.success) {
+      toast.success('Appointment booked!');
       router.push('/patient/dashboard');
       router.refresh();
+    } else if (state.error) {
+      toast.error(state.error);
     }
   }, [state, router]);
 
   const selectedDate = day && time ? new Date(time) : null;
-  const canSubmit = !!doctorId && !!selectedDate;
+  const canSubmit = !!watchedDoctorId && !!selectedDate;
+
+  const onSubmit = (data) => {
+    const fd = new FormData()
+    Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null) fd.set(k, String(v)) })
+    startTransition(() => formAction(fd))
+  };
 
   return (
     <main className="w-full min-h-screen flex items-start justify-center p-4 md:p-10 bg-[var(--color-background)] text-[var(--color-foreground)]">
@@ -100,7 +114,7 @@ export default function BookingForm({ doctors }) {
           </div>
         )}
 
-        <form action={formAction} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Step 1: Choose doctor */}
           <section>
             <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--color-on-surface-variant)] mb-3">
@@ -111,17 +125,22 @@ export default function BookingForm({ doctors }) {
                 <label
                   key={doc.id}
                   className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-colors ${
-                    doctorId === doc.id
+                    watchedDoctorId === doc.id
                       ? 'border-[var(--color-primary)] bg-[var(--color-secondary)]/50'
                       : 'border-[var(--color-outline-variant)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]/50'
                   }`}
                 >
                   <input
                     type="radio"
-                    name="doctorId"
                     value={doc.id}
-                    checked={doctorId === doc.id}
-                    onChange={() => { setDoctorId(doc.id); setTime(null); setAvailableSlots([]); }}
+                    {...doctorIdField}
+                    checked={watchedDoctorId === doc.id}
+                    onChange={(e) => {
+                      doctorIdField.onChange(e);
+                      setTime(null);
+                      setAvailableSlots([]);
+                      setValue('scheduledAt', '');
+                    }}
                     className="accent-[var(--color-primary)]"
                   />
                   <div className="flex-1">
@@ -148,14 +167,14 @@ export default function BookingForm({ doctors }) {
                   <button
                     type="button"
                     key={iso}
-                    onClick={() => { setDay(d); setTime(null); setAvailableSlots([]); }}
+                    onClick={() => { setDay(d); setTime(null); setAvailableSlots([]); setValue('scheduledAt', ''); }}
                     className={`rounded-lg border p-2 text-center transition-colors ${
                       isSel
                         ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
                         : 'border-[var(--color-outline-variant)] text-[var(--color-on-surface)] hover:border-[var(--color-primary)]/50'
                     }`}
                   >
-                    <span className="block text-[10px] uppercase opacity-80">{fmtDate(d).split(',')[0]}</span>
+                    <span className="block text-[10px] uppercase opacity-80">{fmtSlotDate(d.toISOString())}</span>
                     <span className="block text-xs font-semibold mt-0.5">
                       {d.getMonth() + 1}/{d.getDate()}
                     </span>
@@ -187,14 +206,14 @@ export default function BookingForm({ doctors }) {
                     <button
                       type="button"
                       key={ts}
-                      onClick={() => setTime(new Date(ts).toISOString())}
+                      onClick={() => { const iso = new Date(ts).toISOString(); setTime(iso); setValue('scheduledAt', iso); }}
                       className={`rounded-lg border px-2 py-2 text-xs font-semibold transition-colors ${
                         isSel
                           ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
                           : 'border-[var(--color-outline-variant)] text-[var(--color-on-surface)] hover:border-[var(--color-primary)]/50'
                       }`}
                     >
-                      {fmtTime(new Date(ts))}
+                      {fmtTime(new Date(ts).toISOString())}
                     </button>
                   );
                 })}
@@ -208,9 +227,7 @@ export default function BookingForm({ doctors }) {
               4. Reason (optional)
             </h2>
             <textarea
-              name="reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              {...register('reason')}
               rows={2}
               placeholder="Briefly describe why you'd like to see the doctor"
               className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
@@ -235,10 +252,10 @@ export default function BookingForm({ doctors }) {
               <div className="flex items-center gap-3 text-sm text-[var(--color-on-surface)]">
                 <CheckCircle2 className="w-5 h-5 text-[var(--color-primary)]" />
                 <span className="font-semibold">
-                  {doctors.find((d) => d.id === doctorId)?.full_name}
+                  {doctors.find((d) => d.id === watchedDoctorId)?.full_name}
                 </span>
                 <span className="text-[var(--color-on-surface-variant)]">
-                  • {fmtDate(selectedDate)} at {fmtTime(selectedDate)} ({selectedDate.toLocaleTimeString([], { hour: 'numeric' })} slot)
+                  • {fmtDate(selectedDate.toISOString())} at {fmtTime(selectedDate.toISOString())} ({fmtTime(selectedDate.toISOString())} slot)
                 </span>
               </div>
             )}

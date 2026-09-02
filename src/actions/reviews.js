@@ -54,5 +54,20 @@ export async function submitReviewAction(prevState, formData) {
     return { error: "We couldn't save your review. Please try again." }
   }
 
+  const { data: patientProfile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .maybeSingle()
+  const patientName = patientProfile?.full_name || "A patient"
+
+  await supabase.from("notifications").insert({
+    user_id: appointment.doctor_id,
+    type: "general",
+    title: "New review received",
+    body: `${patientName} rated you ${rating} star${rating === 1 ? "" : "s"}${comment ? `: "${comment}"` : "."}`,
+    link: "/doctor/dashboard",
+  })
+
   return { success: true }
 }

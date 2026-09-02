@@ -1,21 +1,44 @@
 "use client"
 
-import React, { useActionState, useEffect } from "react"
+import React, { useActionState, useEffect, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useForm, useController } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { loginAction } from "@/actions/auth"
+import { loginSchema } from "@/lib/validations"
 import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react"
 import AuthField from "@/Components/ui/AuthField"
+import { toast } from "sonner"
 
 export default function LoginForm() {
   const [state, formAction, isPending] = useActionState(loginAction, null)
+  const { control, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(loginSchema),
+    mode: "onTouched",
+    defaultValues: { email: "", password: "" },
+  })
+  const emailField = useController({ control, name: "email" })
+  const passwordField = useController({ control, name: "password" })
   const router = useRouter()
+  const [, startTransition] = useTransition()
 
   useEffect(() => {
+    if (state?.success) {
+      toast.success("Welcome back!")
+    } else if (state?.error) {
+      toast.error(state.error)
+    }
     if (state?.destination) {
       router.push(state.destination)
     }
   }, [state, router])
+
+  const onSubmit = (data) => {
+    const fd = new FormData()
+    Object.entries(data).forEach(([k, v]) => fd.set(k, String(v)))
+    startTransition(() => formAction(fd))
+  }
 
   return (
     <div className="bg-surface-card border border-outline-variant rounded-xl p-6 md:p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
@@ -27,17 +50,19 @@ export default function LoginForm() {
         </div>
       )}
 
-      <form action={formAction} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <AuthField
           id="email"
           name="email"
           type="email"
           label="Email Address"
           icon={<Mail className="w-5 h-5" />}
-          required
           autoComplete="email"
           placeholder="patient@example.com"
+          value={emailField.field.value}
+          onChange={emailField.field.onChange}
         />
+        {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
 
         <AuthField
           id="password"
@@ -45,7 +70,6 @@ export default function LoginForm() {
           type="password"
           label="Password"
           icon={<Lock className="w-5 h-5" />}
-          required
           autoComplete="current-password"
           placeholder="••••••••"
           labelExtra={
@@ -56,7 +80,10 @@ export default function LoginForm() {
               Forgot Password?
             </Link>
           }
+          value={passwordField.field.value}
+          onChange={passwordField.field.onChange}
         />
+        {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
 
         {/* Submit Button */}
         <div className="pt-2">

@@ -1,24 +1,50 @@
 "use client";
 
-import React, { useActionState, useEffect, useMemo, useState } from "react";
+import React, { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useForm, useController } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { signupAction } from "@/actions/auth";
+import { signupSchema } from "@/lib/validations";
 import { User, Mail, Lock, KeyRound, ArrowRight, Loader2, ShieldCheck } from "lucide-react";
 import AuthField from "@/Components/ui/AuthField";
+import { toast } from "sonner";
 import PasswordStrength from "@/Components/ui/PasswordStrength";
 
 export default function RegisterPage() {
   const [state, formAction, isPending] = useActionState(signupAction, null);
   const [password, setPassword] = useState("");
+  const { control, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(signupSchema),
+    mode: "onTouched",
+    defaultValues: { fullName: "", email: "", password: "", confirmPassword: "", agreeTerms: false },
+  });
+  const fullNameField = useController({ control, name: "fullName" });
+  const emailField = useController({ control, name: "email" });
+  const passwordField = useController({ control, name: "password" });
+  const confirmPasswordField = useController({ control, name: "confirmPassword" });
+  const agreeTermsField = useController({ control, name: "agreeTerms" });
   const router = useRouter();
+  const [, startTransition] = useTransition();
 
   const showStrength = useMemo(() => password.length > 0, [password]);
+
+  const onSubmit = (data) => {
+    const fd = new FormData();
+    Object.entries(data).forEach(([k, v]) => fd.set(k, String(v)));
+    startTransition(() => formAction(fd));
+  };
 
   // Redirect to the destination returned by the server action.
   // A plain client redirect (rather than redirect() inside the action) keeps
   // useActionState's isPending state from getting stuck.
   useEffect(() => {
+    if (state?.success) {
+      toast.success("Account created!");
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
     if (state?.destination) {
       router.push(state.destination);
     }
@@ -51,18 +77,20 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form action={formAction} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
             <AuthField
               id="fullName"
               name="fullName"
               type="text"
               label="Full Name"
               icon={<User className="w-5 h-5" />}
-              required
               autoComplete="name"
               placeholder="Jane Doe"
               variant="surface"
+              value={fullNameField.field.value}
+              onChange={fullNameField.field.onChange}
             />
+            {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName.message}</p>}
 
             <AuthField
               id="email"
@@ -70,11 +98,13 @@ export default function RegisterPage() {
               type="email"
               label="Email Address"
               icon={<Mail className="w-5 h-5" />}
-              required
               autoComplete="email"
               placeholder="jane@example.com"
               variant="surface"
+              value={emailField.field.value}
+              onChange={emailField.field.onChange}
             />
+            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
 
             <AuthField
               id="password"
@@ -82,15 +112,17 @@ export default function RegisterPage() {
               type="password"
               label="Password"
               icon={<Lock className="w-5 h-5" />}
-              required
               autoComplete="new-password"
               placeholder="Create a strong password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={passwordField.field.value}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                passwordField.field.onChange(e)
+              }}
               variant="surface"
-            >
-              {showStrength && <PasswordStrength password={password} />}
-            </AuthField>
+            />
+            {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+            {showStrength && <PasswordStrength password={password} />}
 
             <AuthField
               id="confirmPassword"
@@ -98,11 +130,13 @@ export default function RegisterPage() {
               type="password"
               label="Confirm Password"
               icon={<KeyRound className="w-5 h-5" />}
-              required
               autoComplete="new-password"
               placeholder="Re-enter your password"
               variant="surface"
+              value={confirmPasswordField.field.value}
+              onChange={confirmPasswordField.field.onChange}
             />
+            {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword.message}</p>}
 
             {/* Terms and Privacy Checkbox */}
             <div className="flex items-start gap-2 mt-1">
@@ -111,7 +145,8 @@ export default function RegisterPage() {
                   id="agreeTerms"
                   name="agreeTerms"
                   type="checkbox"
-                  required
+                  checked={agreeTermsField.field.value}
+                  onChange={agreeTermsField.field.onChange}
                   className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary/20 bg-surface cursor-pointer"
                 />
               </div>
@@ -135,6 +170,9 @@ export default function RegisterPage() {
                 </label>
               </div>
             </div>
+            {errors.agreeTerms && (
+              <p className="text-xs text-red-500 -mt-3">{errors.agreeTerms.message}</p>
+            )}
 
             {/* Register Button */}
             <button

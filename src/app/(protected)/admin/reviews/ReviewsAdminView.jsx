@@ -1,9 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useActionState } from 'react';
 import { Star, Trash2, Loader2, ShieldAlert } from 'lucide-react';
+import { toast } from 'sonner';
 import { deleteReviewAction } from '@/actions/admin';
+import { fmtDateShort } from '@/lib/date';
 
 function Stars({ rating }) {
   return (
@@ -20,6 +22,14 @@ function Stars({ rating }) {
 
 function DeleteReview({ review }) {
   const [state, formAction, isPending] = useActionState(deleteReviewAction, null);
+
+  useEffect(() => {
+    if (state?.success) {
+      toast.success('Review removed!');
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
+  }, [state]);
   return (
     <form action={formAction}>
       <input type="hidden" name="review_id" value={review.id} />
@@ -72,7 +82,7 @@ export default function ReviewsAdminView({ reviews = [] }) {
                   <td className="px-4 py-3 text-sm text-[var(--color-on-surface-variant)]">{r.specialty || '—'}</td>
                   <td className="px-4 py-3"><Stars rating={r.rating} /></td>
                   <td className="px-4 py-3 text-sm text-[var(--color-on-surface)] max-w-[340px] break-words whitespace-normal">{r.comment || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-[var(--color-on-surface-variant)] whitespace-nowrap">{r.created_at ? new Date(r.created_at).toLocaleDateString() : '—'}</td>
+                  <td className="px-4 py-3 text-sm text-[var(--color-on-surface-variant)] whitespace-nowrap">{fmtDateShort(r.created_at) || '—'}</td>
                   <td className="px-4 py-3"><DeleteReview review={r} /></td>
                 </tr>
               ))}

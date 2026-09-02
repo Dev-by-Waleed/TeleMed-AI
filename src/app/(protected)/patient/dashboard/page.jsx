@@ -2,6 +2,7 @@ import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/supabase/profile';
 import AvailableDoctors from './AvailableDoctors';
+import { fmtTime, fmtEnd, fmtDate, fmtDayHeader } from '@/lib/date';
 import {
   Clock,
   Video,
@@ -12,16 +13,6 @@ import {
   Stethoscope,
   ChevronRight,
 } from 'lucide-react';
-
-function fmtTime(iso) {
-  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
-function fmtEnd(iso, min) {
-  return new Date(new Date(iso).getTime() + min * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
-function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-}
 
 export default async function PatientDashboard() {
   const supabase = await createClient()
@@ -142,7 +133,7 @@ export default async function PatientDashboard() {
               <div className="pl-2">
                 <div className="flex justify-between items-start mb-3">
                   <span className="bg-[var(--color-secondary)] text-[var(--color-foreground)] px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider">
-                    {nextAppointment ? (new Date(nextAppointment.scheduled_at).toDateString() === new Date().toDateString() ? 'Today' : 'Upcoming') : 'No Upcoming'}
+                    {nextAppointment ? (fmtDayHeader(nextAppointment.scheduled_at) === 'Today' ? 'Today' : 'Upcoming') : 'No Upcoming'}
                   </span>
                   <a
                     href="/patient/my-appointments"

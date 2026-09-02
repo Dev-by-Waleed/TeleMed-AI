@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useActionState, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Users,
   Stethoscope,
@@ -12,8 +14,11 @@ import {
   Check,
   Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { createDoctorAction } from '@/actions/admin';
 import { SPECIALTIES } from '@/lib/specialties';
+import { createDoctorSchema } from '@/lib/validations';
+import { fmtDateTime } from '@/lib/date';
 
 const EMPTY = { text: '—' };
 
@@ -173,7 +178,7 @@ export default function AdminDashboardView({ stats, doctors = [], patients = [],
                     <Td>{a.patient_name}</Td>
                     <Td>{a.doctor_name}</Td>
                     <Td>{a.specialty}</Td>
-                    <Td>{a.scheduled_at ? new Date(a.scheduled_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</Td>
+                    <Td>{fmtDateTime(a.scheduled_at) || '—'}</Td>
                     <Td>{a.duration_min ? `${a.duration_min} min` : '—'}</Td>
                     <td className="px-4 py-3">{statusPill(a.status, {
                       colors: { pending: '#b45309', approved: '#047857', confirmed: '#047857', cancelled: '#b91c1c', completed: '#0e7490' },
@@ -213,27 +218,44 @@ export default function AdminDashboardView({ stats, doctors = [], patients = [],
 
 function CreateDoctorForm({ onCancel, onCreated }) {
   const [state, formAction, isPending] = useActionState(createDoctorAction, null);
+  const [, startTransition] = React.useTransition();
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(createDoctorSchema),
+    defaultValues: { fullName: '', email: '', specialty: '', deliveryMode: 'direct' },
+  });
 
   React.useEffect(() => {
     if (state?.success) {
+      toast.success('Doctor created successfully!');
       onCreated(state);
+    } else if (state?.error) {
+      toast.error(state.error);
     }
   }, [state, onCreated]);
 
+  const onSubmit = (data) => {
+    const fd = new FormData();
+    fd.set('full_name', data.fullName);
+    fd.set('email', data.email);
+    fd.set('specialty', data.specialty);
+    fd.set('delivery_mode', data.deliveryMode);
+    startTransition(() => formAction(fd));
+  };
+
   return (
-    <form action={formAction} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {state?.error && <p role="alert" className="text-sm text-red-600 font-medium">{state.error}</p>}
       <div>
         <label className="block text-sm font-medium text-[var(--color-on-surface-variant)] mb-1">Full Name</label>
-        <input name="full_name" required className="w-full px-3 py-2 rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40" placeholder="Dr. Jane Smith" />
+        <input {...register('fullName')} required className="w-full px-3 py-2 rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40" placeholder="Dr. Jane Smith" />
       </div>
       <div>
         <label className="block text-sm font-medium text-[var(--color-on-surface-variant)] mb-1">Email</label>
-        <input name="email" type="email" required className="w-full px-3 py-2 rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40" placeholder="jane@clinic.com" />
+        <input {...register('email')} type="email" required className="w-full px-3 py-2 rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40" placeholder="jane@clinic.com" />
       </div>
       <div>
         <label className="block text-sm font-medium text-[var(--color-on-surface-variant)] mb-1">Specialty</label>
-        <select name="specialty" required className="w-full px-3 py-2 rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40">
+        <select {...register('specialty')} required className="w-full px-3 py-2 rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40">
           {SPECIALTIES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
@@ -241,11 +263,11 @@ function CreateDoctorForm({ onCancel, onCreated }) {
         <label className="block text-sm font-medium text-[var(--color-on-surface-variant)] mb-1">Account Delivery</label>
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="radio" name="delivery_mode" value="password" defaultChecked className="accent-[var(--color-primary)]" />
+            <input type="radio" {...register('deliveryMode')} value="direct" className="accent-[var(--color-primary)]" />
             Generate a temporary password (shown once now — doctor changes it on first login)
           </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="radio" name="delivery_mode" value="invite" className="accent-[var(--color-primary)]" />
+            <input type="radio" {...register('deliveryMode')} value="invite" className="accent-[var(--color-primary)]" />
             Generate an invite link the doctor can use to set their own password
           </label>
         </div>

@@ -2,33 +2,26 @@
 
 import React, { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { Check, X, Loader2, User } from 'lucide-react'
+import { fmtDate, fmtTime } from '@/lib/date'
 import { confirmAppointmentAction, declineAppointmentAction } from '@/actions/doctor-appointments'
-
-function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-}
-function fmtTime(iso) {
-  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
 
 export default function PendingRequests({ requests = [] }) {
   const router = useRouter()
   const [busyId, setBusyId] = useState(null)
-  const [message, setMessage] = useState('')
   const [, startTransition] = useTransition()
 
   async function run(action, appointmentId) {
     setBusyId(appointmentId)
-    setMessage('')
     const formData = new FormData()
     formData.set('appointmentId', appointmentId)
     const result = await action(null, formData)
     setBusyId(null)
     if (result?.error) {
-      setMessage(result.error)
+      toast.error(result.error)
     } else {
-      setMessage('Request updated.')
+      toast.success('Request updated.')
       startTransition(() => router.refresh())
     }
   }
@@ -95,11 +88,6 @@ export default function PendingRequests({ requests = [] }) {
           </div>
         ))}
       </div>
-      {message && (
-        <p className="p-3 text-xs" style={{ color: 'var(--color-primary-dark)' }}>
-          {message}
-        </p>
-      )}
     </div>
   )
 }

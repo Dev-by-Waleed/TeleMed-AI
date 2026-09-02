@@ -4,6 +4,8 @@ import React, { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Pill, RefreshCcw, CheckCircle2, Loader2, Stethoscope } from "lucide-react";
 import { requestRefillAction } from "@/actions/prescriptions";
+import { fmtDateShort } from "@/lib/date";
+import { toast } from "sonner";
 
 function StatusBadge({ status, refillRequested }) {
   const base = "text-[11px] font-bold uppercase tracking-wide px-2 py-0.5 rounded";
@@ -18,7 +20,12 @@ function RefillButton({ prescriptionId }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (state?.success) router.refresh();
+    if (state?.success) {
+      toast.success("Refill request sent to your doctor.");
+      router.refresh();
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
   }, [state, router]);
 
   return (
@@ -72,7 +79,7 @@ function PrescriptionCard({ p }) {
           {p.status === "active" && p.refill_requested && (
             <span className="text-[11px] text-blue-600 dark:text-blue-400 inline-flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Sent to your doctor &middot; {new Date(p.refill_requested_at).toLocaleDateString()}
+              Sent to your doctor &middot; {fmtDateShort(p.refill_requested_at)}
             </span>
           )}
         </div>

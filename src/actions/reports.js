@@ -1,4 +1,5 @@
 "use server"
+import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { summarizeDocument } from "@/lib/ai"
 
@@ -154,4 +155,83 @@ export async function retrySummarizeAction(reportId) {
     await supabase.from("reports").update({ status: "failed" }).eq("id", reportId)
     return { error: "AI analysis failed: " + result.error }
   }
+}
+
+// Deletes a report row and its stored PDF. Ownership is enforced twice: by
+// querying with patient_id = auth.uid() (RLS + explicit filter) and by trying
+// to remove only that patient's storage folder.
+export async function deleteReportAction(reportId) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: "You must be signed in to delete a report." }
+  }
+
+  // Fetch and verify the report belongs to this patient.
+  const { data: report, error: fetchError } = await supabase
+    .from("reports")
+    .select("id, file_url")
+    .eq("id", reportId)
+    .eq("patient_id", user.id)
+    .maybeSingle()
+
+  if (fetchError || !report) {
+    return { error: "Report not found." }
+  }
+
+  // Best-effort removal of the stored PDF. Deleting the DB row is the source
+  // of truth; if the storage deletion fails we still remove the row but log it.
+  if (report.file_url) {
+    const { error: storageError } = await supabase.storage
+      .from("reports")
+      .remove([report.file_url])
+    if (storageError) {
+      console.error("Report file removal failed:", storageError.message)
+    }
+  }
+
+  const { error } = await supabase.from("reports").delete().eq("id", reportId)
+  if (error) {
+    console.error("Report delete failed:", error.status, error.code, error.message)
+    return { error: "We couldn't delete your report. Please try again." }
+  }
+
+  revalidatePath("/patient/reports")
+  return { success: true }
+}
+
+// Returns a short-lived signed URL for downloading the original PDF. Only the
+// owning patient can obtain it (ownership + RLS enforced in the query).
+export async function getReportDownloadUrl(reportId) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { error: "You must be signed in." }
+  }
+
+  const { data: report, error: fetchError } = await supabase
+    .from("reports")
+    .select("id, file_url")
+    .eq("id", reportId)
+    .eq("patient_id", user.id)
+    .maybeSingle()
+
+  if (fetchError || !report || !report.file_url) {
+    return { error: "Report not found." }
+  }
+
+  const { data, error } = await supabase.storage
+    .from("reports")
+    .createSignedUrl(report.file_url, 60) // 60s validity
+
+  if (error) {
+    console.error("Signed URL creation failed:", error.message)
+    return { error: "Could not prepare the file for download." }
+  }
+
+  return { success: true, url: data.signedUrl, title: report.title || "report.pdf" }
 }

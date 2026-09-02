@@ -1,12 +1,22 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useActionState } from 'react';
 import { MessageSquare, Trash2, Loader2, ShieldAlert, User, Stethoscope } from 'lucide-react';
+import { toast } from 'sonner';
 import { deleteMessageAction } from '@/actions/admin';
+import { fmtDateTime } from '@/lib/date';
 
 function RemoveMessage({ message }) {
   const [state, formAction, isPending] = useActionState(deleteMessageAction, null);
+
+  useEffect(() => {
+    if (state?.success) {
+      toast.success('Message removed!');
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
+  }, [state]);
   return (
     <form action={formAction}>
       <input type="hidden" name="message_id" value={message.id} />
@@ -111,7 +121,7 @@ export default function MessagesAdminView({ messages = [] }) {
                       : 'Unlinked chat'}
                   </Td>
                   <td className="px-4 py-3 text-sm text-[var(--color-on-surface)] max-w-[380px] break-words whitespace-normal">{m.body}</td>
-                  <Td>{m.created_at ? new Date(m.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</Td>
+                  <Td>{fmtDateTime(m.created_at) || '—'}</Td>
                   <td className="px-4 py-3"><RemoveMessage message={m} /></td>
                 </tr>
               ))}

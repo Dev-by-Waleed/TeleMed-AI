@@ -1,4 +1,5 @@
 import { Geist, Geist_Mono, Open_Sans } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,7 +29,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} ${openSans.variable} font-sans antialiased`}>
-          {children} {/* Your Navbar, Hero, and Footer go inside here */}
+          {children}
+          <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

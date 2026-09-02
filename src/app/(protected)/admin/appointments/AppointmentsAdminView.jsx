@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useActionState } from 'react';
 import { CalendarDays, CheckCircle2, XCircle, Loader2, AlarmClock } from 'lucide-react';
+import { toast } from 'sonner';
 import { setAppointmentStatusAction } from '@/actions/admin';
+import { fmtDateTime } from '@/lib/date';
 
 function statusPill(status) {
   const colors = {
@@ -24,6 +26,14 @@ function ActionsCell({ appt }) {
   const [state, formAction, isPending] = useActionState(setAppointmentStatusAction, null);
   const canCancel = appt.status !== 'cancelled' && appt.status !== 'completed';
   const canComplete = appt.status === 'pending' || appt.status === 'confirmed';
+
+  useEffect(() => {
+    if (state?.success) {
+      toast.success('Appointment status updated!');
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
+  }, [state]);
   if (!canCancel && !canComplete) return <span className="text-xs text-[var(--color-on-surface-variant)]">No actions</span>;
   return (
     <div className="flex items-center gap-2">
@@ -134,7 +144,7 @@ export default function AppointmentsAdminView({ appointments = [] }) {
                   <Td>
                     <div className="flex items-center gap-1.5">
                       <AlarmClock className="w-3.5 h-3.5 text-[var(--color-outline)]" />
-                      {a.scheduled_at ? new Date(a.scheduled_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
+                      {fmtDateTime(a.scheduled_at) || '—'}
                     </div>
                   </Td>
                   <Td>{a.duration_min ? `${a.duration_min} min` : '—'}</Td>

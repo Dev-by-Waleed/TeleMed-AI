@@ -16,37 +16,8 @@ import {
 } from "lucide-react";
 import { cancelAppointmentAction, rescheduleAppointmentAction } from "@/actions/appointments";
 import { submitReviewAction } from "@/actions/reviews";
-
-function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function fmtTime(iso) {
-  return new Date(iso).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function fmtEnd(iso, min) {
-  const end = new Date(new Date(iso).getTime() + min * 60000);
-  return end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-}
-
-function fmtRelative(iso) {
-  const d = new Date(iso);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString()) return "Today";
-  const tomorrow = new Date(now);
-  tomorrow.setDate(now.getDate() + 1);
-  if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow";
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
+import { fmtDate, fmtTime, fmtEnd, fmtRelative } from "@/lib/date";
+import { toast } from "sonner";
 
 function StatusBadge({ status }) {
   const styles = {
@@ -68,7 +39,12 @@ function CancelButton({ appointmentId }) {
 
   // Refresh the page after a successful cancellation
   React.useEffect(() => {
-    if (state?.success) router.refresh();
+    if (state?.success) {
+      toast.success("Appointment cancelled.");
+      router.refresh();
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
   }, [state, router]);
 
   return (
@@ -99,8 +75,11 @@ function RescheduleButton({ appointmentId }) {
 
   useEffect(() => {
     if (state?.success) {
+      toast.success("Appointment cancelled. Pick a new slot.");
       router.push(state.redirectTo || "/patient/appointments");
       router.refresh();
+    } else if (state?.error) {
+      toast.error(state.error);
     }
   }, [state, router]);
 
@@ -133,7 +112,12 @@ function ReviewModal({ appointment, onClose }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (state?.success) router.refresh();
+    if (state?.success) {
+      toast.success("Review submitted. Thank you!");
+      router.refresh();
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
   }, [state, router]);
 
   return (

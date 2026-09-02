@@ -110,6 +110,21 @@ export async function completeAppointmentAction(prevState, formData) {
     return { error: "We couldn't complete this consultation. Please try again." }
   }
 
+  const { data: patient } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", appointment.patient_id)
+    .maybeSingle()
+
+  const patientName = patient?.full_name || "the patient"
+  await supabase.from("notifications").insert({
+    user_id: appointment.doctor_id,
+    type: "general",
+    title: "Consultation completed",
+    body: `Your consultation with ${patientName} has been marked as completed.`,
+    link: "/doctor/consultation-history",
+  })
+
   for (const path of DOCTOR_PATHS) {
     revalidatePath(path)
   }

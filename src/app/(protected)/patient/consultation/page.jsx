@@ -3,26 +3,11 @@ import { Clock, Video, Stethoscope } from 'lucide-react'
 import PatientConsultation from '@/Components/ui/PatientConsultation'
 import { createClient } from '@/lib/supabase/server'
 import { getUser, hasCompletedOnboarding } from '@/lib/supabase/profile'
+import { fmtTime, fmtDayHeader } from '@/lib/date'
 
 export const metadata = {
   title: "Consultation | TeleMed AI",
   description: "Join your consultations.",
-}
-
-function fmtTime(iso) {
-  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
-
-function fmtDay(iso) {
-  const d = new Date(iso)
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(today.getDate() + 1)
-  const sameDay = (a, b) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
-  if (sameDay(d, today)) return 'Today'
-  if (sameDay(d, tomorrow)) return 'Tomorrow'
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
 export default async function PatientConsultationPage() {
@@ -72,7 +57,7 @@ export default async function PatientConsultationPage() {
               <div className="pl-2 flex-1">
                 <div className="flex justify-between items-start mb-3">
                   <span className="bg-[var(--color-secondary)] text-[var(--color-foreground)] px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider">
-                    {fmtDay(a.scheduled_at)}
+                    {fmtDayHeader(a.scheduled_at)}
                   </span>
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-on-surface-variant)] capitalize">
                     {a.status}

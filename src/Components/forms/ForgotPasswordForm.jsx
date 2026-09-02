@@ -1,15 +1,26 @@
 "use client"
 
-import React, { useActionState, useRef, useState } from "react"
+import React, { useActionState, useEffect, useRef, useState, useTransition } from "react"
 import Link from "next/link"
+import { useForm, useController } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { forgotPasswordAction } from "@/actions/password"
+import { forgotPasswordSchema } from "@/lib/validations"
 import { Mail, ArrowLeft, Loader2, CheckCircle2, RefreshCw, AlertTriangle } from "lucide-react"
 import AuthField from "@/Components/ui/AuthField"
+import { toast } from "sonner"
 
 const RESEND_WAIT_SECONDS = 60
 
 export default function ForgotPasswordForm() {
   const [state, formAction, isPending] = useActionState(forgotPasswordAction, null)
+  const { control, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: "onTouched",
+    defaultValues: { email: "" },
+  })
+  const emailField = useController({ control, name: "email" })
+  const [, startTransition] = useTransition()
   const [sentAt, setSentAt] = useState(null)
   const [resendError, setResendError] = useState(null)
   // Read the ?status=invalid_link flag once at mount (window is undefined
@@ -20,8 +31,21 @@ export default function ForgotPasswordForm() {
   })
   const formRef = useRef(null)
 
-  const handleResend = (e) => {
-    e.preventDefault()
+  useEffect(() => {
+    if (state?.success) {
+      toast.success("Reset link sent!")
+    } else if (state?.error) {
+      toast.error(state.error)
+    }
+  }, [state])
+
+  const onSubmit = (data) => {
+    const fd = new FormData()
+    Object.entries(data).forEach(([k, v]) => fd.set(k, String(v)))
+    startTransition(() => formAction(fd))
+  }
+
+  const handleResend = () => {
     setResendError(null)
     setInvalidLink(false)
 
@@ -34,7 +58,7 @@ export default function ForgotPasswordForm() {
     }
 
     setSentAt(Date.now())
-    formRef.current?.requestSubmit()
+    handleSubmit(onSubmit)()
   }
 
   if (state?.success) {
@@ -97,17 +121,19 @@ export default function ForgotPasswordForm() {
         </div>
       )}
 
-      <form action={formAction} ref={formRef} className="space-y-6">
+      <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <AuthField
           id="email"
           name="email"
           type="email"
           label="Email Address"
           icon={<Mail className="w-5 h-5" />}
-          required
           autoComplete="email"
           placeholder="patient@example.com"
+          value={emailField.field.value}
+          onChange={emailField.field.onChange}
         />
+        {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
 
         <div className="pt-2">
           <button

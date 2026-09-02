@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { fmtDateShort, fmtTime } from '@/lib/date';
 import ConsultationHistoryView from './ConsultationHistoryView';
 
 export const metadata = {
@@ -14,8 +15,8 @@ export default async function ConsultationHistory() {
     appointmentId: r.id,
     id: r.id.slice(0, 8).toUpperCase(),
     name: r.patient_name || r.doctor_name || 'Patient',
-    date: new Date(r.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    time: new Date(r.scheduled_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    date: fmtDateShort(r.scheduled_at),
+    time: fmtTime(r.scheduled_at),
     status: r.status[0].toUpperCase() + r.status.slice(1).replace('_', ' '),
     summary: r.summary || '',
   }))

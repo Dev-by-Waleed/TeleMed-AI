@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { fmtDateShort, fmtDateTime } from "@/lib/date"
 import {
   User,
   Mail,
@@ -15,13 +16,6 @@ import {
   ShieldCheck,
 } from "lucide-react"
 
-function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-}
-function fmtDateTime(iso) {
-  const d = new Date(iso)
-  return `${d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · ${d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
-}
 function statusLabel(status) {
   return (status || "pending").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
@@ -295,7 +289,7 @@ export default function PatientDetail({ patient, medical, reports, prescriptions
                         </span>
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: "var(--color-on-surface-variant)" }}>
-                        {p.instructions || "No instructions"} · {fmtDate(p.created_at)}
+                        {p.instructions || "No instructions"} · {fmtDateShort(p.created_at)}
                         {p.refill_requested ? " · Refill requested" : ""}
                       </p>
                     </div>
@@ -341,7 +335,7 @@ export default function PatientDetail({ patient, medical, reports, prescriptions
                         {r.title}
                       </p>
                       <p className="text-xs mt-0.5 line-clamp-2" style={{ color: "var(--color-on-surface-variant)" }}>
-                        {r.ai_summary || "No summary available"} · {fmtDate(r.created_at)}
+                        {r.ai_summary || "No summary available"} · {fmtDateShort(r.created_at)}
                       </p>
                     </div>
                   </div>

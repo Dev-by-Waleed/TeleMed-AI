@@ -1,23 +1,44 @@
 "use client"
 
-import React, { useActionState, useEffect } from "react"
+import React, { useActionState, useEffect, useTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useForm, useController } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { resetPasswordAction } from "@/actions/password"
+import { resetPasswordSchema } from "@/lib/validations"
 import { Lock, KeyRound, Loader2, CheckCircle2, ArrowLeft, AlertTriangle, RefreshCw } from "lucide-react"
 import AuthField from "@/Components/ui/AuthField"
+import { toast } from "sonner"
 import PasswordStrength from "@/Components/ui/PasswordStrength"
 
 export default function ResetPasswordForm() {
   const [state, formAction, isPending] = useActionState(resetPasswordAction, null)
+  const { control, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: "onTouched",
+    defaultValues: { password: "", confirmPassword: "" },
+  })
+  const passwordField = useController({ control, name: "password" })
+  const confirmPasswordField = useController({ control, name: "confirmPassword" })
   const [password, setPassword] = React.useState("")
   const router = useRouter()
+  const [, startTransition] = useTransition()
 
   useEffect(() => {
     if (state?.success) {
+      toast.success("Password reset successfully!")
       router.push("/login")
+    } else if (state?.error) {
+      toast.error(state.error)
     }
   }, [state, router])
+
+  const onSubmit = (data) => {
+    const fd = new FormData()
+    Object.entries(data).forEach(([k, v]) => fd.set(k, String(v)))
+    startTransition(() => formAction(fd))
+  }
 
   if (state?.success) {
     return (
@@ -83,21 +104,23 @@ export default function ResetPasswordForm() {
         </div>
       )}
 
-      <form action={formAction} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <AuthField
           id="password"
           name="password"
           type="password"
           label="New Password"
           icon={<Lock className="w-5 h-5" />}
-          required
           autoComplete="new-password"
           placeholder="Create a strong password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        >
-          {password.length > 0 && <PasswordStrength password={password} />}
-        </AuthField>
+          value={passwordField.field.value}
+          onChange={(e) => {
+            setPassword(e.target.value)
+            passwordField.field.onChange(e)
+          }}
+        />
+        {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+        {password.length > 0 && <PasswordStrength password={password} />}
 
         <AuthField
           id="confirmPassword"
@@ -105,10 +128,12 @@ export default function ResetPasswordForm() {
           type="password"
           label="Confirm New Password"
           icon={<KeyRound className="w-5 h-5" />}
-          required
           autoComplete="new-password"
           placeholder="Re-enter your new password"
+          value={confirmPasswordField.field.value}
+          onChange={confirmPasswordField.field.onChange}
         />
+        {errors.confirmPassword && <p className="text-xs text-red-500 mt-1">{errors.confirmPassword.message}</p>}
 
         <div className="pt-2">
           <button

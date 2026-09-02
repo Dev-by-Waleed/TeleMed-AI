@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useActionState } from "react";
+import React, { useActionState, useEffect } from "react";
 import { ClipboardPenLine, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { toast } from "sonner";
 import { decideProfileRequestAction } from "@/actions/profile-requests";
+import { fmtDate } from "@/lib/date";
 
 function statusPill(value) {
   const meta = {
@@ -29,6 +31,14 @@ function Td({ children }) {
 
 function DecideForm({ request }) {
   const [state, formAction, isPending] = useActionState(decideProfileRequestAction, null);
+
+  useEffect(() => {
+    if (state?.success) {
+      toast.success('Profile request resolved!');
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
+  }, [state]);
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="request_id" value={request.id} />
@@ -81,7 +91,7 @@ function RequestRow({ request }) {
           </p>
         )}
       </td>
-      <Td>{new Date(request.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</Td>
+      <Td>{fmtDate(request.created_at)}</Td>
       <td className="px-4 py-3">{statusPill(request.status)}</td>
       <td className="px-4 py-3 text-sm text-[var(--color-on-surface-variant)] whitespace-normal max-w-xs">
         {request.admin_response || "—"}

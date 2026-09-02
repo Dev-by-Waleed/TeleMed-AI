@@ -2,12 +2,10 @@
 
 import React, { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { CheckCircle2, Loader2 } from 'lucide-react'
+import { fmtTime } from '@/lib/date'
 import { completeAppointmentAction } from '@/actions/doctor-appointments'
-
-function fmtTime(iso) {
-  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-}
 
 export default function TodayAppointments({ appointments = [] }) {
   const router = useRouter()
@@ -21,7 +19,10 @@ export default function TodayAppointments({ appointments = [] }) {
     const result = await completeAppointmentAction(null, formData)
     setCompletingId(null)
     if (result?.success) {
+      toast.success('Appointment marked as complete')
       startTransition(() => router.refresh())
+    } else {
+      toast.error(result?.error || 'Failed to complete appointment')
     }
   }
 

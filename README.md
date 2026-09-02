@@ -1,6 +1,6 @@
 # TeleMed AI
 
-A full-stack telemedicine web app built with **Next.js 16 (App Router)**, **Supabase** (PostgreSQL, Realtime, Storage, Auth), **React 19**, **Tailwind CSS v4**, and **lucide-react** icons. It supports three roles — **patient**, **doctor**, and **admin** — with appointment booking, real-time consultation chat, AI-assisted report summarization, and admin management.
+A full-stack telemedicine web app built with **Next.js 16 (App Router)**, **Supabase** (PostgreSQL, Realtime, Storage, Auth), **React 19**, **Tailwind CSS v4**, and **lucide-react** icons, plus **react-hook-form** + **zod** forms, **sonner** toasts, and **date-fns**. It supports three roles — **patient**, **doctor**, and **admin** — with appointment booking, real-time consultation chat, AI-assisted report summarization, and admin management.
 
 ## Features
 
@@ -22,6 +22,11 @@ model, and behavior. All are implemented.
   action validates using the same ranges/values as onboarding (age, height,
   weight, gender, blood group, smoking, emergency contact) and preserves
   `completed_onboarding = true`. Loaded from the navbar dropdown.
+- Layout: an identity card (avatar, name, email, blood pill), a 4-tile overview
+  stat strip (Age / Height / Weight / Blood Group), and icon-headed section
+  cards for **Basic Vitals**, **Optional Details**, and **Medical History**.
+  Reusable `Field`/`SectionCard` helpers are hoisted to module scope (the React
+  Compiler lint rule rejects components defined during render).
 
 ### Appointment management (My Appointments)
 - `GET /patient/my-appointments` (page + `AppointmentsClient.jsx`,
@@ -70,6 +75,22 @@ model, and behavior. All are implemented.
   `doctors.reviews_count` live.
 - Completed (unreviewed) appointments show a **Rate this visit** modal;
   reviewed ones show "Rated X/5".
+
+### Medical reports (AI summaries)
+- `GET /patient/reports` (page + `ReportsClient.jsx`, `src/actions/reports.js`).
+  The page now selects `file_url` so the client can download the original PDF.
+- **Layout** — a search box (by title) plus status filter tabs
+  (All / Analyzed / Processing / Failed) with live counts, so a long report list
+  is easy to browse. Reports render as compact cards with a summary snippet
+  below analyzed ones.
+- **Actions per report** — **Download** the original PDF (server-generated signed
+  URL via `getReportDownloadUrl`), **View / Copy Summary**, **Retry** (on
+  `failed`), and **Delete** (with a confirmation modal via
+  `deleteReportAction`). Copy now has a clipboard fallback for
+  non-secure/blocked contexts plus icon + toast feedback.
+- Server actions are ownership-checked (query scoped to `patient_id =
+  auth.uid()`) and rely on the existing RLS/storage policies — no schema change
+  was needed for delete or signed-URL downloads.
 
 ### Dashboard (optimized hub)
 - `GET /patient/dashboard` — stats row (Upcoming, Active Medications, Medical
@@ -135,7 +156,7 @@ Doctor-role workflow features.
   Visit** (→ the room for a pending/confirmed appointment).
 
 ### Doctor profile & settings
-- `GET /doctor/profile` (page + `DoctorProfileForm.jsx`,
+- `GET /doctor/profile` (page + `DoctorProfileForm.jsx`, `ProfileRequestForm.jsx`,
   `src/actions/doctor-profile.js`), new sidebar entry ("My Profile").
 - Edits the doctor bio. `updateDoctorProfileAction` writes the `doctors` row
   (source of truth for the directory, RLS `Doctors can update their own
@@ -143,6 +164,16 @@ Doctor-role workflow features.
 - **Full name and specialty are read-only and admin-managed** — both are set at
   doctor creation in the admin panel (`createDoctorAction`), not editable from
   the doctor profile, to keep directory credentials trustworthy.
+- Layout mirrors the patient profile: identity card + icon-headed section cards.
+  **Practice Details** shows the admin-managed name/specialty as read-only
+  values with a hint, plus the editable **Bio**. The **Request Profile Change**
+  form (name/specialty + reason and request history) and the shared
+  **Change Password** card stack below; change-request status pills use the
+  design tokens (`bg-amber-100`, `bg-emerald-100`, `bg-red-100`).
+- Scroll gotcha: because `doctor/layout.jsx` is `h-screen flex overflow-hidden`,
+  the page `<main>` holds `flex-1 overflow-y-auto` (never `max-w-*`/`mx-auto` on
+  it) with an inner centered wrapper — otherwise the sections below the fold are
+  clipped and the scrollbar breaks.
 
 ### Account security (shared by both roles)
 - `src/actions/account.js` + `src/Components/account/*`:
@@ -275,7 +306,11 @@ already implemented.
 | Framework | Next.js 16 (App Router), React 19 |
 | Backend   | Supabase (PostgreSQL, Auth, Realtime, Storage) |
 | Styling   | Tailwind CSS v4 (via `@import "tailwindcss"` + `@theme` tokens) |
-| AI        | Gemini 1.5 Flash (report summarization) |
+| Forms / validation | react-hook-form + zod (`@hookform/resolvers`) |
+| Toasts    | sonner |
+| Dates     | date-fns (helpers in `src/lib/date.js`) |
+| Markdown  | react-markdown (AI report summary rendering) |
+| AI        | Gemini 2.5 Flash (report summarization) |
 
 ## Getting started
 

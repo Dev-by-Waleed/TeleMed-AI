@@ -15,7 +15,6 @@ import {
   Star,
   Stethoscope,
   Users,
-  Video,
   ClipboardPenLine,
 } from 'lucide-react'
 import NotificationBell from '@/Components/layout/NotificationBell'
@@ -26,7 +25,6 @@ const NAV_CONFIG = [
   { label: 'Profile Requests', path: '/admin/profile-requests', icon: ClipboardPenLine },
   { label: 'Patients', path: '/admin/patients', icon: Users },
   { label: 'Appointments', path: '/admin/appointments', icon: CalendarDays },
-  { label: 'Consultations', path: '/admin/consultations', icon: Video },
   { label: 'Prescriptions', path: '/admin/prescriptions', icon: Pill },
   { label: 'Reviews', path: '/admin/reviews', icon: Star },
   { label: 'Reports', path: '/admin/reports', icon: FileText },

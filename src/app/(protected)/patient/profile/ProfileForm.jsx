@@ -1,313 +1,360 @@
 "use client";
 
-import React, { useActionState, useEffect } from "react";
+import React, { useActionState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
-  AlertTriangle,
-  Pill,
-  ShieldCheck,
   Save,
   Loader2,
   UserRound,
   Mail,
+  Activity,
+  HeartPulse,
+  Stethoscope,
+  Zap,
+  Ruler,
+  Weight,
+  Droplets,
 } from "lucide-react";
 import { updateProfileAction } from "@/actions/profile";
+import { patientProfileSchema } from "@/lib/validations";
 import AvatarUpload from "@/Components/account/AvatarUpload";
 import ChangePasswordForm from "@/Components/account/ChangePasswordForm";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+const inputCls =
+  "w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow";
+const textareaCls =
+  "w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow";
+
+function Field({ label, htmlFor, error, children, className = "" }) {
+  return (
+    <div className={`flex flex-col gap-1 ${className}`}>
+      <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor={htmlFor}>
+        {label}
+      </label>
+      {children}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+function SectionCard({ icon: Icon, title, subtitle, children }) {
+  return (
+    <section className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl shadow-sm">
+      <div className="flex items-center gap-3 px-6 pt-6 pb-4 border-b border-[var(--color-outline-variant)]">
+        <div className="bg-[var(--color-secondary)] p-2 rounded-lg text-[var(--color-primary)]">
+          <Icon className="w-4 h-4" />
+        </div>
+        <div>
+          <h2 className="text-sm font-bold text-[var(--color-foreground)]">{title}</h2>
+          {subtitle && (
+            <p className="text-xs text-[var(--color-on-surface-variant)] mt-0.5">{subtitle}</p>
+          )}
+        </div>
+      </div>
+      <div className="p-6">{children}</div>
+    </section>
+  );
+}
+
 export default function ProfileForm({ profile, userEmail, fullName, avatarUrl }) {
   const [state, formAction, isPending] = useActionState(updateProfileAction, null);
   const router = useRouter();
-
-  useEffect(() => {
-    if (state?.success) {
-      router.refresh();
-    }
-  }, [state, router]);
+  const [, startTransition] = useTransition();
 
   const p = profile || {};
 
-  return (
-    <main className="min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)]">
-      <div className="p-10 px-4 md:px-10 max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-semibold text-[var(--color-foreground)] mb-1">
-            My Profile
-          </h1>
-          <p className="text-base text-[var(--color-on-surface-variant)]">
-            Review and update your medical details. Changes are shared with your
-            doctors before each consultation.
-          </p>
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(patientProfileSchema),
+    mode: "onTouched",
+    defaultValues: {
+      age: p.age ?? "",
+      gender: p.gender ?? "",
+      height_cm: p.height_cm ?? "",
+      weight_kg: p.weight_kg ?? "",
+      blood_group: p.blood_group ?? "",
+      allergies: p.allergies ?? "",
+      medications: p.medications ?? "",
+      conditions: p.conditions ?? "",
+      emergency_contact: p.emergency_contact ?? "",
+      notes: p.notes ?? "",
+      past_surgeries: p.past_surgeries ?? "",
+      smoking_status: p.smoking_status ?? "",
+      chronic_illness_notes: p.chronic_illness_notes ?? "",
+    },
+  });
 
-          <div className="mt-6 bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-5 flex flex-wrap items-center gap-x-8 gap-y-2">
+  useEffect(() => {
+    if (state?.success) {
+      toast.success("Profile saved successfully.");
+      router.refresh();
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
+  }, [state, router]);
+
+  function onSubmit(data) {
+    const fd = new FormData();
+    fd.set("age", String(data.age));
+    fd.set("gender", data.gender === "other" ? "non-binary" : data.gender === "prefer_not_to_say" ? "prefer-not-to-say" : data.gender);
+    fd.set("height", String(data.height_cm));
+    fd.set("weight", String(data.weight_kg));
+    fd.set("bloodGroup", data.blood_group ?? "");
+    fd.set("allergies", data.allergies ?? "");
+    fd.set("medications", data.medications ?? "");
+    fd.set("conditions", data.conditions ?? "");
+    fd.set("emergencyContact", data.emergency_contact);
+    fd.set("notes", data.notes ?? "");
+    fd.set("pastSurgeries", data.past_surgeries ?? "");
+    fd.set("smokingStatus", data.smoking_status ?? "");
+    fd.set("chronicIllnessNotes", data.chronic_illness_notes ?? "");
+    startTransition(() => formAction(fd));
+  }
+
+  const statCards = [
+    { icon: Zap, label: "Age", value: p.age ? `${p.age} yrs` : "—" },
+    { icon: Ruler, label: "Height", value: p.height_cm ? `${p.height_cm} cm` : "—" },
+    { icon: Weight, label: "Weight", value: p.weight_kg ? `${p.weight_kg} kg` : "—" },
+    { icon: Droplets, label: "Blood Group", value: p.blood_group || "—" },
+  ];
+
+  return (
+    <main className="flex-1 p-4 md:p-10 max-w-[1200px] mx-auto w-full">
+      <header className="mb-8">
+        <h1 className="text-2xl md:text-3xl font-semibold text-[var(--color-foreground)] mb-1">
+          My Profile
+        </h1>
+        <p className="text-base text-[var(--color-on-surface-variant)]">
+          Review and update your medical details. Changes are shared with your doctors before each
+          consultation.
+        </p>
+      </header>
+
+      {/* Identity card */}
+      <div className="mb-8 bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6 flex flex-col md:flex-row md:items-center gap-5">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="shrink-0">
             <AvatarUpload avatarUrl={avatarUrl} fallbackText={fullName || userEmail || "U"} />
-            <div>
-              <p className="text-sm font-semibold flex items-center gap-1.5">
-                <UserRound className="w-4 h-4 text-[var(--color-primary)]" />
-                {fullName || "Patient"}
-              </p>
-              <p className="text-xs text-[var(--color-on-surface-variant)] flex items-center gap-1.5 mt-0.5">
-                <Mail className="w-3.5 h-3.5 text-[var(--color-outline)]" />
-                {userEmail}
-              </p>
-            </div>
-            <span className="text-xs font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded bg-[var(--color-secondary)] text-[var(--color-foreground)]">
-              {p.blood_group ? `${p.blood_group} blood` : "Blood group not set"}
-            </span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-base font-semibold flex items-center gap-1.5">
+              <UserRound className="w-4 h-4 text-[var(--color-primary)]" />
+              <span className="truncate">{fullName || "Patient"}</span>
+            </p>
+            <p className="text-xs text-[var(--color-on-surface-variant)] flex items-center gap-1.5 mt-0.5">
+              <Mail className="w-3.5 h-3.5 text-[var(--color-outline)]" />
+              <span className="truncate">{userEmail}</span>
+            </p>
           </div>
         </div>
-
-        {state?.error && (
-          <div
-            role="alert"
-            className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 text-sm font-medium text-center"
-          >
-            {state.error}
-          </div>
+        {p.blood_group && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--color-secondary)] text-[var(--color-foreground)] text-xs font-semibold border border-[var(--color-outline-variant)]">
+            <Droplets className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+            {p.blood_group} blood
+          </span>
         )}
+      </div>
 
-        {state?.success && (
+      {/* Overview stats */}
+      <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-3">
+        {statCards.map(({ icon: Icon, label, value }) => (
           <div
-            role="status"
-            className="mb-6 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-700 text-sm font-medium text-center"
+            key={label}
+            className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-4 flex items-center gap-3"
           >
-            Profile saved successfully.
+            <div className="bg-[var(--color-secondary)] p-2 rounded-lg text-[var(--color-primary)] shrink-0">
+              <Icon className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-wide font-semibold text-[var(--color-on-surface-variant)]">
+                {label}
+              </p>
+              <p className="text-sm font-semibold text-[var(--color-foreground)] truncate">{value}</p>
+            </div>
           </div>
-        )}
+        ))}
+      </div>
 
-        <form action={formAction} className="space-y-6">
+      {state?.error && (
+        <div
+          role="alert"
+          className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 text-sm font-medium text-center"
+        >
+          {state.error}
+        </div>
+      )}
+
+      <div className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic Vitals */}
-          <section className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--color-on-surface-variant)] mb-6">
-              Basic Vitals
-            </h2>
+          <SectionCard
+            icon={Activity}
+            title="Basic Vitals"
+            subtitle="Your core physical measurements and contact details."
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="age">
-                  Age
-                </label>
+              <Field label="Age" htmlFor="age" error={errors.age?.message}>
                 <input
                   type="number"
                   id="age"
-                  name="age"
                   min="1"
                   max="150"
-                  defaultValue={p.age ?? ""}
-                  required
-                  className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
+                  placeholder="e.g. 45"
+                  {...register("age")}
+                  className={inputCls}
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="gender">
-                  Gender
-                </label>
-                <select
-                  id="gender"
-                  name="gender"
-                  required
-                  defaultValue={p.gender ?? ""}
-                  className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
-                >
+              <Field label="Gender" htmlFor="gender" error={errors.gender?.message}>
+                <select id="gender" {...register("gender")} className={inputCls}>
                   <option value="" disabled>Select gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
-                  <option value="non-binary">Non-binary</option>
-                  <option value="prefer-not-to-say">Prefer not to say</option>
+                  <option value="other">Non-binary</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
                 </select>
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="height">
-                  Height (cm)
-                </label>
+              <Field label="Height (cm)" htmlFor="height_cm" error={errors.height_cm?.message}>
                 <input
                   type="number"
-                  id="height"
-                  name="height"
+                  id="height_cm"
                   min="50"
                   max="250"
-                  defaultValue={p.height_cm ?? ""}
-                  required
-                  className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
+                  placeholder="e.g. 175"
+                  {...register("height_cm")}
+                  className={inputCls}
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="weight">
-                  Weight (kg)
-                </label>
+              <Field label="Weight (kg)" htmlFor="weight_kg" error={errors.weight_kg?.message}>
                 <input
                   type="number"
-                  id="weight"
-                  name="weight"
+                  id="weight_kg"
                   min="2"
                   max="400"
-                  defaultValue={p.weight_kg ?? ""}
-                  required
-                  className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
+                  placeholder="e.g. 70"
+                  {...register("weight_kg")}
+                  className={inputCls}
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1 md:col-span-2">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="emergencyContact">
-                  Emergency Contact Number
-                </label>
+              <Field label="Emergency Contact Number" htmlFor="emergency_contact" error={errors.emergency_contact?.message} className="md:col-span-2">
                 <input
                   type="tel"
-                  id="emergencyContact"
-                  name="emergencyContact"
+                  id="emergency_contact"
                   placeholder="e.g. +1 555 123 4567"
-                  defaultValue={p.emergency_contact ?? ""}
-                  required
-                  className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
+                  {...register("emergency_contact")}
+                  className={inputCls}
                 />
-              </div>
+              </Field>
             </div>
-          </section>
+          </SectionCard>
 
           {/* Optional Details */}
-          <section className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--color-on-surface-variant)] mb-6">
-              Optional Details
-            </h2>
+          <SectionCard
+            icon={HeartPulse}
+            title="Optional Details"
+            subtitle="Additional context that helps your care team."
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="bloodGroup">
-                  Blood Group
-                </label>
-                <select
-                  id="bloodGroup"
-                  name="bloodGroup"
-                  defaultValue={p.blood_group ?? ""}
-                  className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
-                >
+              <Field label="Blood Group" htmlFor="blood_group">
+                <select id="blood_group" {...register("blood_group")} className={inputCls}>
                   <option value="">Select blood group</option>
                   {BLOOD_GROUPS.map((bg) => (
                     <option key={bg} value={bg}>{bg}</option>
                   ))}
                 </select>
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="smokingStatus">
-                  Smoking Status
-                </label>
-                <select
-                  id="smokingStatus"
-                  name="smokingStatus"
-                  defaultValue={p.smoking_status ?? ""}
-                  className="w-full h-12 rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors outline-none input-glow"
-                >
+              <Field label="Smoking Status" htmlFor="smoking_status">
+                <select id="smoking_status" {...register("smoking_status")} className={inputCls}>
                   <option value="">Select smoking status</option>
                   <option value="never">Never smoked</option>
                   <option value="former">Former smoker</option>
                   <option value="current">Current smoker</option>
                 </select>
-              </div>
+              </Field>
             </div>
 
-            <div className="flex flex-col gap-1 mt-6">
-              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="pastSurgeries">
-                Past Surgeries
-              </label>
-              <textarea
-                id="pastSurgeries"
-                name="pastSurgeries"
-                rows={2}
-                placeholder="List any past surgeries, if any"
-                defaultValue={p.past_surgeries ?? ""}
-                className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
-              />
-            </div>
+            <div className="mt-6 space-y-6">
+              <Field label="Past Surgeries" htmlFor="past_surgeries">
+                <textarea
+                  id="past_surgeries"
+                  rows={2}
+                  placeholder="List any past surgeries, if any"
+                  {...register("past_surgeries")}
+                  className={textareaCls}
+                />
+              </Field>
 
-            <div className="flex flex-col gap-1 mt-6">
-              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="chronicIllnessNotes">
-                Chronic Illness Notes
-              </label>
-              <textarea
-                id="chronicIllnessNotes"
-                name="chronicIllnessNotes"
-                rows={2}
-                placeholder="Additional notes about any chronic illnesses"
-                defaultValue={p.chronic_illness_notes ?? ""}
-                className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
-              />
-            </div>
+              <Field label="Chronic Illness Notes" htmlFor="chronic_illness_notes">
+                <textarea
+                  id="chronic_illness_notes"
+                  rows={2}
+                  placeholder="Additional notes about any chronic illnesses"
+                  {...register("chronic_illness_notes")}
+                  className={textareaCls}
+                />
+              </Field>
 
-            <div className="flex flex-col gap-1 mt-6">
-              <label className="text-sm font-semibold text-[var(--color-on-surface)]" htmlFor="notes">
-                General Notes
-              </label>
-              <textarea
-                id="notes"
-                name="notes"
-                rows={2}
-                placeholder="Anything else you'd like to share"
-                defaultValue={p.notes ?? ""}
-                className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
-              />
+              <Field label="General Notes" htmlFor="notes">
+                <textarea
+                  id="notes"
+                  rows={2}
+                  placeholder="Anything else you'd like to share"
+                  {...register("notes")}
+                  className={textareaCls}
+                />
+              </Field>
             </div>
-          </section>
+          </SectionCard>
 
           {/* Medical History */}
-          <section className="bg-[var(--color-surface-card)] border border-[var(--color-outline-variant)] rounded-xl p-6">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--color-on-surface-variant)] mb-6">
-              Medical History
-            </h2>
+          <SectionCard
+            icon={Stethoscope}
+            title="Medical History"
+            subtitle="Important clinical details your doctors should know."
+          >
             <div className="space-y-6">
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2" htmlFor="allergies">
-                  <AlertTriangle className="w-4 h-4 text-[var(--color-outline)]" />
-                  Allergies
-                </label>
+              <Field label="Allergies" htmlFor="allergies">
                 <textarea
                   id="allergies"
-                  name="allergies"
                   rows={2}
                   placeholder="List any known allergies (e.g., Penicillin, Peanuts) or type 'None'"
-                  defaultValue={p.allergies ?? ""}
-                  className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
+                  {...register("allergies")}
+                  className={textareaCls}
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2" htmlFor="medications">
-                  <Pill className="w-4 h-4 text-[var(--color-outline)]" />
-                  Current Medications
-                </label>
+              <Field label="Current Medications" htmlFor="medications">
                 <textarea
                   id="medications"
-                  name="medications"
                   rows={2}
                   placeholder="List current medications and dosages or type 'None'"
-                  defaultValue={p.medications ?? ""}
-                  className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
+                  {...register("medications")}
+                  className={textareaCls}
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2" htmlFor="conditions">
-                  <ShieldCheck className="w-4 h-4 text-[var(--color-outline)]" />
-                  Pre-existing Conditions
-                </label>
+              <Field label="Pre-existing Conditions" htmlFor="conditions">
                 <textarea
                   id="conditions"
-                  name="conditions"
                   rows={3}
                   placeholder="Briefly describe any chronic conditions (e.g., Asthma, Hypertension)"
-                  defaultValue={p.conditions ?? ""}
-                  className="w-full rounded-lg bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] px-4 py-2 transition-colors resize-none outline-none input-glow"
+                  {...register("conditions")}
+                  className={textareaCls}
                 />
-              </div>
+              </Field>
             </div>
-          </section>
+          </SectionCard>
 
           {/* Actions */}
-          <div className="pt-2 flex justify-end gap-3">
+          <div className="flex justify-end gap-3">
             <a
               href="/patient/dashboard"
               className="px-6 py-3 rounded-lg text-sm font-semibold border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-variant)] transition-colors"

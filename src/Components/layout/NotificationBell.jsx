@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Bell, MessageSquare, CalendarDays, CheckCheck, Loader2 } from 'lucide-react'
 import createClient from '@/lib/supabase/client'
+import { fmtDateTime } from '@/lib/date'
 
 export default function NotificationBell({ align = 'right' }) {
   const router = useRouter()
@@ -176,12 +177,7 @@ export default function NotificationBell({ align = 'right' }) {
                       </span>
                     )}
                     <span className="block text-[10px] text-slate-400 mt-1">
-                      {new Date(n.created_at).toLocaleString([], {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
+                      {fmtDateTime(n.created_at)}
                     </span>
                   </span>
                   {!n.is_read && (

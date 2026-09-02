@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { FileText, X, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { fmtDateShort } from '@/lib/date';
 
 function statusPill(value) {
   const colors = {
@@ -56,7 +57,7 @@ export default function ReportsAdminView({ reports = [] }) {
                 <tr key={r.id} className="hover:bg-[var(--color-secondary)]/40">
                   <Td>{r.patient_name}</Td>
                   <Td>{r.title}</Td>
-                  <Td>{r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</Td>
+                  <Td>{fmtDateShort(r.created_at) || '—'}</Td>
                   <td className="px-4 py-3">{statusPill(r.status)}</td>
                   <td className="px-4 py-3">
                     {r.ai_summary ? (
