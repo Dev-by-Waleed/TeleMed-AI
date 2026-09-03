@@ -23,6 +23,9 @@ const openSans = Open_Sans({
 export const metadata = {
   title: "TeleMed AI",
   description: "Book appointments, consult online, get prescriptions and manage your health — all in one place.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }) {

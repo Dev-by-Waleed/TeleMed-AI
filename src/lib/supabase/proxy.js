@@ -63,12 +63,12 @@ export async function updateSession(request) {
     }
 
     // 4. Fetch User Role if logged in and accessing protected OR auth routes
-    if (user && (isProtectedRoute || isAuthRoute)) {
+    if (user && (isProtectedRoute || isAuthRoute || pathname === '/')) {
         const userRole = await getUserRole(supabase, user.id)
         const defaultDashboard = `/${userRole}/dashboard`
 
-        // 5. CASE 2: Logged-in user tries to visit /login or /signup -> Redirect to their dashboard
-        if (isAuthRoute) {
+        // 5. CASE 2: Logged-in user tries to visit /login, /signup, or / -> Redirect to their dashboard
+        if (isAuthRoute || pathname === '/') {
             return NextResponse.redirect(new URL(defaultDashboard, request.url))
         }
 
